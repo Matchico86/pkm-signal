@@ -1,0 +1,35 @@
+# Dépendances
+node_modules/
+
+# Variables d'environnement / secrets
+.env
+.env.*
+!.env.example
+
+# Base locale SQLite
+db/*.db
+db/*.db-shm
+db/*.db-wal
+
+# Logs
+logs/*.log
+*.log
+
+# Données temporaires / exports
+data/raw/*
+data/exports/*
+!data/raw/.gitkeep
+!data/exports/.gitkeep
+
+# Fichiers système / IDE
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Couverture / caches
+coverage/
+.nyc_output/
+.cache/
+tmp/
+temp/
