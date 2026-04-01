@@ -3,6 +3,14 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "db:migrate": "node src/db/migrate.js"
+    "db:migrate": "node src/db/migrate.js",
+    "db:migrate:status": "node src/db/migrate.js --status",
+    "portal:import": "node src/connectors/portal/import-snapshot.js",
+    "portal:import:legacy-stock": "node src/connectors/portal/import-stock.js",
+    "portal:import:v1": "npm run portal:import:legacy-stock",
+    "import:portal": "npm run portal:import",
+    "market:import": "node src/connectors/market/import-daily.js",
+    "market:snapshot": "node src/jobs/market-snapshot.js",
+    "scores:daily": "node src/jobs/scores-daily.js"
   }
 }

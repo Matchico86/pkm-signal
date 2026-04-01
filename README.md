@@ -1,76 +1,99 @@
 # PKM Market Engine
 
-Moteur de surveillance marché / hype / valorisation pour cartes Pokémon.
+Moteur analytique V1 pour suivre le marche cartes Pokemon, calculer des features simples et produire un scoring interpretable.
 
-## But du projet
+## Scope V1
 
-PKM Market Engine est un projet séparé de PKM Portal.
+- base SQLite locale
+- import PKM Portal
+- ingestion marche Pokemon TCG API
+- scoring journalier lisible
 
-- **PKM Portal** ; outil métier ; stock ; achats ; ventes ; opérations
-- **PKM Market Engine** ; moteur analytique ; snapshots marché ; scoring ; alertes ; watchlist
+Hors scope ici: UI, ML, nouvelles sources externes complexes, V2/V3.
 
-L’objectif de la V1 est de produire rapidement des **signaux exploitables** sur :
-- le stock importé depuis PKM Portal ;
-- une watchlist externe ;
-- les cartes chères ; récentes ; chase ; alt ; SAR ; équivalents.
+## Etat actuel (pause propre)
 
-## Philosophie V1
+- schema cible aligne avec `db/schema.sql`
+- migrations versionnees dans `db/migrations/`
+- pipeline V1 relancable localement: migrate -> import Portal -> snapshot marche -> scoring
+- repricing protege: pas de `portal_ref` interne fiable => `score_reprice=0`, `reprice_direction=NONE`
 
-Le projet doit rester :
-- simple ;
-- modulaire ;
-- lisible ;
-- exploitable vite ;
-- améliorable plus tard.
+## Prerequis
 
-On évite volontairement :
-- la surconception ;
-- le temps réel ;
-- les dépendances cloud inutiles ;
-- l’UI complexe ;
-- le machine learning ;
-- le sealed fonctionnel en V1.
+- Node.js 22+ (utilisation de `node:sqlite`)
+- npm
 
-## Stack V1
+## Configuration
 
-- **Base principale** ; SQLite
-- **Repo local** ; développement avec Codex
-- **Source métier interne** ; PKM Portal via export contrôlé
-- **Sources externes pivot** ; Pokémon TCG API en priorité
-- **Sortie V1** ; reporting simple ; exports ; alertes lisibles
+1. Copier `.env.example` vers `.env`
+2. Ajuster au minimum `PKM_DB_PATH` et les chemins de fichiers locaux
+3. Ajouter `PKM_POKEMONTCG_API_KEY` si vous utilisez `market:snapshot`
 
-## Objectifs V1
+## Workflow local minimal
 
-1. stocker un référentiel minimal des cartes surveillées ;
-2. importer le stock utile depuis PKM Portal ;
-3. récupérer des snapshots marché externes ;
-4. calculer des features simples ;
-5. produire des scores lisibles ;
-6. émettre des alertes actionnables ;
-7. générer une lecture humaine minimale.
+### 1) Migrer la base
 
-## Hors périmètre V1
+```bash
+npm run db:migrate
+```
 
-- app complète type Collectr ;
-- auth ;
-- sync temps réel ;
-- sealed fonctionnel ;
-- IA / modèle prédictif ;
-- multi-sources complexes si faible valeur immédiate ;
-- migration PostgreSQL immédiate.
+Verifier le statut des migrations:
 
-## Structure du repo
+```bash
+npm run db:migrate:status
+```
 
-```text
-pkm-market-engine/
-├─ README.md
-├─ AGENTS.md
-├─ .gitignore
-├─ .env.example
-├─ docs/
-├─ db/
-├─ data/
-├─ src/
-├─ scripts/
-├─ tests/
-└─ logs/
+### 2) Import Portal (V1 operationnel moteur)
+
+Source de reference V1 pour alimenter `targets` + `portal_stock_snapshot`:
+
+```bash
+npm run portal:import:v1 -- --file=data/export/portal-stock.json --snapshot-at=YYYY-MM-DD
+```
+
+### 3) Snapshot marche externe
+
+```bash
+npm run market:snapshot -- --market-date=YYYY-MM-DD --scope=all
+```
+
+Options utiles:
+- `--scope=hot`
+- `--target-source=portal_stock`
+- `--usd-eur-rate=<number>`
+- `--db=<path>`
+
+### 4) Calcul scoring journalier
+
+```bash
+npm run scores:daily -- --score-date=YYYY-MM-DD --scope=all
+```
+
+## Imports Portal: quel flux utiliser
+
+Deux flux coexistent volontairement:
+
+- `portal:import:v1` (`import-stock.js`): flux operationnel V1 du moteur (tables `targets` et `portal_stock_snapshot`)
+- `portal:import` (`import-snapshot.js`): flux detaille et traceable (tables `portal_snapshot_*`, `portal_*_items`, etc.)
+
+Decision V1 actuelle:
+- pour faire tourner le pipeline moteur jusqu'au scoring, utiliser `portal:import:v1`
+- utiliser `portal:import` pour l'audit detaille et la qualite d'import Portal
+
+## Scripts npm utiles
+
+- `db:migrate`
+- `db:migrate:status`
+- `portal:import:v1`
+- `portal:import`
+- `market:snapshot`
+- `market:import` (import local JSON, utile pour tests offline)
+- `scores:daily`
+
+## Documentation
+
+- `docs/schema-v1.md`
+- `docs/sources-market.md`
+- `docs/scoring-v1.md`
+- `docs/v1-runbook.md`
+- `docs/v1-consolidation.md`

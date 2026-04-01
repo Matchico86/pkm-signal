@@ -17,8 +17,12 @@ logs/*.log
 
 # Données temporaires / exports
 data/raw/*
-data/exports/*
+data/export/*
 !data/raw/.gitkeep
+!data/export/.gitkeep
+
+# Legacy path kept ignored for compatibility
+data/exports/*
 !data/exports/.gitkeep
 
 # Fichiers système / IDE

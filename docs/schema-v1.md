@@ -61,8 +61,17 @@ Score journalier interpretable par carte.
 Champs clefs :
 - `score_date` ;
 - `asset_id` (FK) ;
-- `score_value` ;
-- `score_label` et `note` (optionnels).
+- `target_id` (optionnel) ;
+- `price_ref`, `portal_ref` ;
+- variations (`d3`, `d7`, `d14`, `d30`) ;
+- features (`momentum_short_raw`, `momentum_mid_raw`, `acceleration_raw`) ;
+- qualite (`spread_raw`, `spread_quality`, `freshness_score`, `history_depth`, `cross_confirmation`) ;
+- contexte (`stock_exposure`, `pricing_gap_pct`) ;
+- scores (`confidence_score`, `score_tension`, `score_hype`, `score_reprice`, `score_sell_watch`, `score_buy_watch`) ;
+- `reprice_direction` ;
+- `reason_codes_json` ;
+- `score_version` ;
+- legacy compat (`score_value`, `score_label`, `note`).
 
 Contrainte : unicite (`asset_id`, `score_date`).
 
@@ -90,4 +99,54 @@ Indexes limites a des usages MVP :
 
 - Schema de reference : `db/schema.sql`
 - Migration initiale : `db/migrations/001_init.sql` (identique au schema initial)
+- Extension import snapshot Portal : `db/migrations/002_portal_snapshot_import.sql`
+- Extension scoring V1 : `db/migrations/003_scores_v1.sql`
 - Runner : `src/db/migrate.js` (table `schema_migrations` pour tracer les migrations appliquees)
+
+## Import snapshot Portal versionne
+
+Le moteur supporte un import snapshot complet PKM Portal via :
+- commande : `node src/connectors/portal/import-snapshot.js`
+- script npm : `portal:import`
+
+### Tables de trace run
+
+#### `portal_snapshot_runs`
+Journal de run d'import :
+- source ; version schema ; `exported_at`
+- hash payload (`payload_hash`) ; origine (`payload_origin`)
+- statut (`started`, `success`, `failed`, `skipped_duplicate`)
+- `warnings_json` ; `summary_json` ; `error_message`
+- reference de duplicate (`duplicate_of_run_id`) si payload deja importe
+
+#### `portal_snapshot_run_payloads`
+Stockage optionnel du JSON brut associe a chaque run.
+
+### Tables metier snapshot (granularite fine)
+
+#### `portal_purchase_items`
+Lignes d'achat fines ; cle metier preservee `P_ITEM_ID`.
+
+#### `portal_sales_items`
+Lignes de vente fines ; cle metier preservee `S_ITEM_ID` ; lien `P_ITEM_ID` conserve quand present.
+
+#### `portal_stock_live_snapshots`
+Snapshot operationnel du stock live ; datation via `run_id`/run.
+
+#### `portal_purchase_orders`
+Contexte header commandes achat (`P_ORDER_ID`, `Order_owner`) sans remplacer la granularite item.
+
+#### `portal_sales_orders`
+Contexte header commandes vente (`S_ORDER_ID`, `Order_owner`) sans remplacer la granularite item.
+
+#### `portal_orders_status`
+Bloc contextuel optionnel (type/ref/status/updated_at).
+
+### Principes d'import
+
+- validation envelope (`schema_version`, `exported_at`, blocs requis)
+- validation bloc par bloc avec rejet ligne invalide
+- warnings structures (code, block, message, count, samples)
+- idempotence par hash payload
+- reimport identique : run `skipped_duplicate` par defaut
+- reimport force possible avec `--allow-duplicate`

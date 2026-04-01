@@ -1,0 +1,28 @@
+PRAGMA foreign_keys = ON;
+
+ALTER TABLE scores_daily ADD COLUMN target_id INTEGER;
+ALTER TABLE scores_daily ADD COLUMN price_ref REAL;
+ALTER TABLE scores_daily ADD COLUMN portal_ref REAL;
+ALTER TABLE scores_daily ADD COLUMN d3 REAL;
+ALTER TABLE scores_daily ADD COLUMN d7 REAL;
+ALTER TABLE scores_daily ADD COLUMN d14 REAL;
+ALTER TABLE scores_daily ADD COLUMN d30 REAL;
+ALTER TABLE scores_daily ADD COLUMN momentum_short_raw REAL;
+ALTER TABLE scores_daily ADD COLUMN momentum_mid_raw REAL;
+ALTER TABLE scores_daily ADD COLUMN acceleration_raw REAL;
+ALTER TABLE scores_daily ADD COLUMN spread_raw REAL;
+ALTER TABLE scores_daily ADD COLUMN spread_quality REAL;
+ALTER TABLE scores_daily ADD COLUMN freshness_score REAL;
+ALTER TABLE scores_daily ADD COLUMN history_depth REAL;
+ALTER TABLE scores_daily ADD COLUMN cross_confirmation REAL;
+ALTER TABLE scores_daily ADD COLUMN stock_exposure REAL;
+ALTER TABLE scores_daily ADD COLUMN pricing_gap_pct REAL;
+ALTER TABLE scores_daily ADD COLUMN confidence_score INTEGER;
+ALTER TABLE scores_daily ADD COLUMN score_tension INTEGER;
+ALTER TABLE scores_daily ADD COLUMN score_hype INTEGER;
+ALTER TABLE scores_daily ADD COLUMN score_reprice INTEGER;
+ALTER TABLE scores_daily ADD COLUMN reprice_direction TEXT;
+ALTER TABLE scores_daily ADD COLUMN score_sell_watch INTEGER;
+ALTER TABLE scores_daily ADD COLUMN score_buy_watch INTEGER;
+ALTER TABLE scores_daily ADD COLUMN reason_codes_json TEXT;
+ALTER TABLE scores_daily ADD COLUMN score_version TEXT NOT NULL DEFAULT 'v1';
