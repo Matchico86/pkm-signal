@@ -25,6 +25,7 @@ data/export/*
 data/exports/*
 !data/exports/.gitkeep
 
+
 # Fichiers système / IDE
 .DS_Store
 Thumbs.db
@@ -37,3 +38,11 @@ coverage/
 .cache/
 tmp/
 temp/
+
+# Python & POC FR Strict
+venv/
+__pycache__/
+.pytest_cache/
+data/cache/
+outputs/
+*.pyc
