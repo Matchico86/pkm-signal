@@ -79,14 +79,14 @@ function generatePortalHints(facts, condition) {
   return hints;
 }
 
-function enrichBuySnapshotWithInternalData(snapshot, context) {
+async function enrichBuySnapshotWithInternalData(snapshot, context) {
   const items = snapshot.items || [];
   const enrichedItems = [];
   let warningsCount = 0;
 
   for (const item of items) {
     const cardKey = normalizeCardKey(item);
-    const enrichment = getInternalEnrichment(cardKey, item.condition, context);
+    const enrichment = await getInternalEnrichment(cardKey, item.condition, context);
     
     const facts = {
       owners: enrichment.owners,
@@ -114,6 +114,8 @@ function enrichBuySnapshotWithInternalData(snapshot, context) {
   const sources = [];
   if (context.sheets_export) sources.push("sheets_export");
   if (context.supabase_portal) sources.push("supabase_portal");
+  if (context.fetch_sheets_api) sources.push("sheets_api");
+  if (context.fetch_supabase_portal) sources.push("supabase_portal_api");
 
   return {
     snapshot_ref: snapshot.snapshot_ref || "unknown",

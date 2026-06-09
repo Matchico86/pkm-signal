@@ -8,6 +8,7 @@ let customSheetsPath = null;
 let disableSheets = false;
 let disableSupabase = false;
 let fetchSheets = false;
+let fetchSupabasePortal = false;
 
 for (let i = 0; i < args.length; i++) {
   if (args[i] === '--sheets-export' && args[i + 1]) {
@@ -15,6 +16,8 @@ for (let i = 0; i < args.length; i++) {
     i++;
   } else if (args[i] === '--fetch-sheets') {
     fetchSheets = true;
+  } else if (args[i] === '--fetch-supabase-portal') {
+    fetchSupabasePortal = true;
   } else if (args[i] === '--no-sheets') {
     disableSheets = true;
   } else if (args[i] === '--no-supabase') {
@@ -89,8 +92,9 @@ async function run() {
 
   const context = {
     sheets_export: fetchSheets ? null : (disableSheets ? null : mockSheets),
-    supabase_portal: disableSupabase ? null : mockSupabase,
-    fetch_sheets_api: fetchSheets
+    supabase_portal: fetchSupabasePortal ? null : (disableSupabase ? null : mockSupabase),
+    fetch_sheets_api: fetchSheets,
+    fetch_supabase_portal: fetchSupabasePortal
   };
 
   // 4. Run enrichment
@@ -104,7 +108,7 @@ async function run() {
     sources_loaded: result.summary.sources_used,
     source_modes: {
       sheets_export: context.fetch_sheets_api ? "api" : (context.sheets_export ? usedSheetsSource : "missing"),
-      supabase_portal: context.supabase_portal ? "mock" : "missing"
+      supabase_portal: context.fetch_supabase_portal ? "api" : (context.supabase_portal ? "mock" : "missing")
     },
     summary: {
       items_total: items.length,

@@ -108,13 +108,17 @@ function mergeData(sheetsData, supabaseData, cardKey, inputCondition) {
 }
 
 const { fetchSheetsBundle } = require('../../connectors/portal/sheets-api-client');
+const { fetchPortalContextByCardId } = require('../../connectors/portal/supabase-portal-reader');
 
 const internalCache = new Map();
 
 async function getInternalEnrichment(cardKey, inputCondition, context) {
   let sheetsExport = context.sheets_export;
+  let supabasePortal = context.supabase_portal;
   let fetchWarning = null;
+  let supabaseWarning = null;
   
+  // 1. Fetch Sheets API if requested
   if (context.fetch_sheets_api && !sheetsExport) {
     if (internalCache.has(cardKey)) {
       const cached = internalCache.get(cardKey);
@@ -134,12 +138,35 @@ async function getInternalEnrichment(cardKey, inputCondition, context) {
     }
   }
 
+  // 2. Fetch Supabase Portal API if requested
+  if (context.fetch_supabase_portal && !supabasePortal) {
+    const supaCacheKey = `supa_${cardKey}`;
+    if (internalCache.has(supaCacheKey)) {
+      supabasePortal = internalCache.get(supaCacheKey);
+      if (supabasePortal) {
+        const w = supabasePortal.cote_history?.warning || supabasePortal.collection?.warning;
+        if (w) supabaseWarning = w + " (cached)";
+      }
+    } else {
+      const supaResult = await fetchPortalContextByCardId(cardKey);
+      internalCache.set(supaCacheKey, supaResult);
+      supabasePortal = supaResult;
+      if (supaResult) {
+        const w = supaResult.cote_history?.warning || supaResult.collection?.warning;
+        if (w) supabaseWarning = w;
+      }
+    }
+  }
+
   const sheetsData = parseSheetsData(sheetsExport, cardKey);
-  const supabaseData = parseSupabaseData(context.supabase_portal, cardKey);
+  const supabaseData = parseSupabaseData(supabasePortal, cardKey);
   
   const merged = mergeData(sheetsData, supabaseData, cardKey, inputCondition);
   if (fetchWarning) {
     merged.warnings.push(fetchWarning);
+  }
+  if (supabaseWarning) {
+    merged.warnings.push(supabaseWarning);
   }
   return merged;
 }
