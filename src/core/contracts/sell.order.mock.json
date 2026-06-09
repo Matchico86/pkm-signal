@@ -1,0 +1,62 @@
+{
+  "type": "sell.order.snapshot",
+  "version": 1,
+  "draft_order_id": "local-sell-456",
+  "platform": "cardmarket",
+  "buyer": "acheteur_y",
+
+  "line_count": 2,
+  "total_quantity": 4,
+
+  "total_net_price": 140.00,
+  "fees_total": 5.00,
+  "total_gross_price": 145.00,
+
+  "total_quote_price": 180.00,
+  "total_realized_margin": 60.00,
+
+  "owner_totals": [
+    {
+      "owner_key": "mathieu",
+      "total_net_price": 140.00,
+      "total_gross_price": 145.00,
+      "total_quote_price": 180.00,
+      "realized_margin": 60.00
+    }
+  ],
+
+  "items": [
+    {
+      "draft_item_id": "item-1",
+      "owner_key": "mathieu",
+      "set_code": "TWM",
+      "card_number": "188",
+      "card_name": "Dracaufeu ex",
+      "quantity": 1,
+      "language": "FR",
+      "state_raw": "GR9",
+      "variant": "reverse",
+      "sell_unit_price": 100.00,
+      "quote_unit_price": 150.00,
+      "delta_unit": -50.00,
+      "owned_quantity": 1,
+      "buy_unit_price": 60.00
+    },
+    {
+      "draft_item_id": "item-2",
+      "owner_key": "mathieu",
+      "set_code": "PAF",
+      "card_number": "004",
+      "card_name": "Pikachu",
+      "quantity": 3,
+      "language": "FR",
+      "state_raw": "EX",
+      "variant": "normal",
+      "sell_unit_price": 15.00,
+      "quote_unit_price": 10.00,
+      "delta_unit": 5.00,
+      "owned_quantity": 2,
+      "buy_unit_price": 5.00
+    }
+  ]
+}

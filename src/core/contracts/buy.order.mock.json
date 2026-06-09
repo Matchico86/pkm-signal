@@ -1,0 +1,47 @@
+{
+  "type": "buy.order.snapshot",
+  "version": 1,
+  "draft_order_id": "local-buy-123",
+  "platform": "cardmarket",
+  "seller": "vendeur_x",
+
+  "line_count": 1,
+  "total_quantity": 1,
+
+  "total_net_price": 50.00,
+  "fees_total": 0.00,
+  "total_gross_price": 50.00,
+
+  "total_quote_price": 60.00,
+  "theoretical_margin": 10.00,
+
+  "owner_totals": [
+    {
+      "owner_key": "mathieu",
+      "total_net_price": 50.00,
+      "total_gross_price": 50.00,
+      "total_quote_price": 60.00,
+      "theoretical_margin": 10.00
+    }
+  ],
+
+  "items": [
+    {
+      "draft_item_id": "item-1",
+      "owner_key": "mathieu",
+      "set_code": "TWM",
+      "card_number": "188",
+      "card_name": "Dracaufeu ex",
+      "quantity": 1,
+      "language": "FR",
+      "state_raw": "GR9",
+      "variant": "reverse",
+      "buy_unit_price": 50.00,
+      "quote_unit_price": 60.00,
+      "delta_unit": 10.00,
+      "owned_quantity": 2,
+      "sales_velocity": 0.5,
+      "collection_status": "upgrade"
+    }
+  ]
+}
