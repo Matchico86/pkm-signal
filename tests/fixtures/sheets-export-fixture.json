@@ -1,0 +1,27 @@
+[
+  {
+    "CARD_ID": "sv4-001",
+    "Collection_Mathieu": "VRAI",
+    "Etat_Mathieu": "NM",
+    "Stock_Mathieu": "0",
+    "Invest_Mathieu": "1",
+    "Sold_Mathieu": "0",
+    "Last_Buy_Price_Mathieu": "250",
+    "Avg_Buy_Price_Mathieu": "250",
+    "Collection_Ewan": "FAUX",
+    "Etat_Ewan": "",
+    "Stock_Ewan": "0",
+    "Invest_Ewan": "0",
+    "Sold_Ewan": "0",
+    "Portal_Cote": "280",
+    "Portal_Cote_Date": "2026-03-01"
+  },
+  {
+    "CARD_ID": "sv4_123_fr",
+    "Collection_Mathieu": "FAUX",
+    "Stock_Mathieu": "0",
+    "Collection_Ewan": "VRAI",
+    "Etat_Ewan": "EX",
+    "Stock_Ewan": "1"
+  }
+]
