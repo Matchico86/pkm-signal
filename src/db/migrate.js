@@ -51,6 +51,31 @@ const SCORES_V1_COLUMNS = [
   "reason_codes_json",
   "score_version",
 ];
+const ALERTS_V1_COLUMNS = [
+  "alert_id",
+  "job_run_id",
+  "asset_id",
+  "target_id",
+  "alert_type",
+  "scope",
+  "severity",
+  "priority_score",
+  "confidence_score",
+  "status",
+  "title",
+  "message_short",
+  "action_hint",
+  "reason_codes_json",
+  "metrics_json",
+  "dedupe_key",
+  "first_seen_at",
+  "last_seen_at",
+  "emitted_at",
+  "cooldown_until",
+  "occurrence_count",
+  "resolved_at",
+  "resolution_reason",
+];
 
 function listMigrations() {
   if (!fs.existsSync(MIGRATIONS_DIR)) {
@@ -111,6 +136,10 @@ function isMigrationAlreadyReflected(db, migrationName) {
 
   if (migrationName === "003_scores_v1.sql") {
     return hasAllColumns(db, "scores_daily", SCORES_V1_COLUMNS);
+  }
+
+  if (migrationName === "004_alerts_v1.sql") {
+    return hasAllColumns(db, "alerts", ALERTS_V1_COLUMNS);
   }
 
   return false;
