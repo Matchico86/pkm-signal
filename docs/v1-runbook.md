@@ -106,3 +106,22 @@ Entrees:
 Sorties:
 - upsert `scores_daily`
 - reason codes JSON
+
+## 7) Alertes journalieres
+
+Commande:
+
+```bash
+node src/jobs/alerts-daily.js [--score-date=YYYY-MM-DD] [--scope=all|owned|watchlist] [--max-new-alerts=<n>] [--max-output=<n>] [--out-tsv=<path>] [--db=<path>]
+```
+
+Entrees:
+- `scores_daily` (jour courant + snapshot precedent)
+- `portal_stock_snapshot` (stock le plus recent)
+- `market_history_daily` (listing count pour signal d'offre)
+- `alerts` (dedup/cooldown/statut)
+
+Sorties:
+- insert/update `alerts`
+- expiration des alertes actives non revues
+- sortie console courte (et TSV optionnel)

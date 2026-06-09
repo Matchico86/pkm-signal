@@ -8,6 +8,7 @@ Moteur analytique V1 pour suivre le marche cartes Pokemon, calculer des features
 - import PKM Portal
 - ingestion marche Pokemon TCG API
 - scoring journalier lisible
+- alertes journalieres actionnables
 
 Hors scope ici: UI, ML, nouvelles sources externes complexes, V2/V3.
 
@@ -15,7 +16,7 @@ Hors scope ici: UI, ML, nouvelles sources externes complexes, V2/V3.
 
 - schema cible aligne avec `db/schema.sql`
 - migrations versionnees dans `db/migrations/`
-- pipeline V1 relancable localement: migrate -> import Portal -> snapshot marche -> scoring
+- pipeline V1 relancable localement: migrate -> import Portal -> snapshot marche -> scoring -> alertes
 - repricing protege: pas de `portal_ref` interne fiable => `score_reprice=0`, `reprice_direction=NONE`
 
 ## Prerequis
@@ -69,6 +70,12 @@ Options utiles:
 npm run scores:daily -- --score-date=YYYY-MM-DD --scope=all
 ```
 
+### 5) Generation alertes journalieres
+
+```bash
+npm run alerts:daily -- --score-date=YYYY-MM-DD --scope=all
+```
+
 ## Imports Portal: quel flux utiliser
 
 Deux flux coexistent volontairement:
@@ -89,11 +96,13 @@ Decision V1 actuelle:
 - `market:snapshot`
 - `market:import` (import local JSON, utile pour tests offline)
 - `scores:daily`
+- `alerts:daily`
 
 ## Documentation
 
 - `docs/schema-v1.md`
 - `docs/sources-market.md`
 - `docs/scoring-v1.md`
+- `docs/alerts-v1.md`
 - `docs/v1-runbook.md`
 - `docs/v1-consolidation.md`

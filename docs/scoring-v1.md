@@ -185,4 +185,4 @@ Options :
 - pas de modelisation avancee du carnet/offre
 - pas de multi-source comparee riche
 - repricing actif uniquement avec vraie reference interne Portal ; le cout moyen stock n'est pas utilise
-- pas d'alertes automatiques (thread 50)
+- les alertes sont traitees dans `docs/alerts-v1.md` (thread 50), hors logique de scoring pur

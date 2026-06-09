@@ -79,12 +79,21 @@ Contrainte : unicite (`asset_id`, `score_date`).
 Alertes metier actionnables.
 
 Champs clefs :
-- `alert_date` ;
+- `alert_id` ;
+- `job_run_id` ;
 - `asset_id` (FK) ;
+- `target_id` (nullable, FK) ;
 - `alert_type` ;
-- `severity` (1-5) ;
-- `status` (`open`, `acknowledged`, `closed`) ;
-- `title`, `message`.
+- `scope` (`owned`, `watchlist`) ;
+- `severity` (`P1`, `P2`, `P3`) ;
+- `priority_score`, `confidence_score` ;
+- `status` (`new`, `open`, `acknowledged`, `acted`, `dismissed`, `expired`) ;
+- `title`, `message_short`, `action_hint` ;
+- `reason_codes_json`, `metrics_json` ;
+- `dedupe_key` ;
+- `first_seen_at`, `last_seen_at`, `emitted_at`, `cooldown_until` ;
+- `occurrence_count` ;
+- `resolved_at`, `resolution_reason`.
 
 ## Index
 
@@ -93,7 +102,8 @@ Indexes limites a des usages MVP :
 - `portal_stock_snapshot.asset_id` ;
 - `market_history_daily.market_date` ;
 - `scores_daily.score_date` ;
-- `alerts(status, created_at)`.
+- `alerts(status, priority_score, emitted_at)` ;
+- dedupe actif unique `alerts(asset_id, alert_type)` sur statuts ouverts.
 
 ## Migration
 
@@ -101,6 +111,7 @@ Indexes limites a des usages MVP :
 - Migration initiale : `db/migrations/001_init.sql` (identique au schema initial)
 - Extension import snapshot Portal : `db/migrations/002_portal_snapshot_import.sql`
 - Extension scoring V1 : `db/migrations/003_scores_v1.sql`
+- Extension alertes V1 : `db/migrations/004_alerts_v1.sql`
 - Runner : `src/db/migrate.js` (table `schema_migrations` pour tracer les migrations appliquees)
 
 ## Import snapshot Portal versionne
