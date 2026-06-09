@@ -13,7 +13,8 @@
     "market:import": "node src/connectors/market/import-daily.js",
     "market:snapshot": "node src/jobs/market-snapshot.js",
     "scores:daily": "node src/jobs/scores-daily.js",
-    "alerts:daily": "node src/jobs/alerts-daily.js"
+    "alerts:daily": "node src/jobs/alerts-daily.js",
+    "internal:probe": "node analysis/internal_portal_probe.js"
   },
   "dependencies": {
     "@netlify/functions": "^5.3.0",
