@@ -28,19 +28,14 @@ function mergeData(sheetsData, supabaseData, cardKey, inputCondition) {
   if (!sheetsData && !supabaseData) {
     return {
       card_key: cardKey,
-      owners: {
-        mathieu: { collection_owned: false, collection_best_condition: null, stock_quantity: 0, invest_quantity: 0, sold_quantity_12m: 0, last_buy_price: null, average_buy_price: null, last_sell_price: null, average_sell_price: null },
-        ewan: { collection_owned: false, collection_best_condition: null, stock_quantity: 0, invest_quantity: 0, sold_quantity_12m: 0, last_buy_price: null, average_buy_price: null, last_sell_price: null, average_sell_price: null }
+      collection: {
+        mathieu: { owned: false, best_condition: null },
+        ewan: { owned: false, best_condition: null }
       },
-      global: {
-        total_owned_quantity: 0,
-        total_sold_quantity: 0,
-        sale_velocity: "unknown",
-        portal_cote: null,
-        portal_cote_updated_at: null,
-        already_owned_better_condition: false,
-        internal_confidence: 0.1
-      },
+      stock: { mathieu: 0, ewan: 0 },
+      sales: { already_sold: false },
+      cote: { last_value: null, updated_at: null },
+      internal_confidence: 0.1,
       warnings: ["No internal data found"]
     };
   }
@@ -69,40 +64,33 @@ function mergeData(sheetsData, supabaseData, cardKey, inputCondition) {
     }
   }
 
-  let totalOwned = 0;
-  let totalSold = 0;
-  let mathieuBest = finalData.owners.mathieu.collection_best_condition;
-  let ewanBest = finalData.owners.ewan.collection_best_condition;
-
-  totalOwned += finalData.owners.mathieu.stock_quantity + finalData.owners.mathieu.invest_quantity;
-  totalOwned += finalData.owners.ewan.stock_quantity + finalData.owners.ewan.invest_quantity;
-  if (finalData.owners.mathieu.collection_owned) totalOwned++;
-  if (finalData.owners.ewan.collection_owned) totalOwned++;
-
-  totalSold += finalData.owners.mathieu.sold_quantity_12m + finalData.owners.ewan.sold_quantity_12m;
-
-  let alreadyBetter = false;
-  if (inputCondition) {
-    if (
-      (finalData.owners.mathieu.collection_owned && isBetterCondition(mathieuBest, inputCondition)) || 
-      (finalData.owners.ewan.collection_owned && isBetterCondition(ewanBest, inputCondition))
-    ) {
-      alreadyBetter = true;
-    }
-  }
+  let totalSold = finalData.owners.mathieu.sold_quantity_12m + finalData.owners.ewan.sold_quantity_12m;
+  let alreadySold = totalSold > 0;
 
   return {
     card_key: cardKey,
-    owners: finalData.owners,
-    global: {
-      total_owned_quantity: totalOwned,
-      total_sold_quantity: totalSold,
-      sale_velocity: getSaleVelocity(totalSold),
-      portal_cote: finalData.global.portal_cote,
-      portal_cote_updated_at: finalData.global.portal_cote_updated_at,
-      already_owned_better_condition: alreadyBetter,
-      internal_confidence
+    collection: {
+      mathieu: {
+        owned: finalData.owners.mathieu.collection_owned,
+        best_condition: finalData.owners.mathieu.collection_best_condition
+      },
+      ewan: {
+        owned: finalData.owners.ewan.collection_owned,
+        best_condition: finalData.owners.ewan.collection_best_condition
+      }
     },
+    stock: {
+      mathieu: finalData.owners.mathieu.stock_quantity,
+      ewan: finalData.owners.ewan.stock_quantity
+    },
+    sales: {
+      already_sold: alreadySold
+    },
+    cote: {
+      last_value: finalData.global.portal_cote,
+      updated_at: finalData.global.portal_cote_updated_at
+    },
+    internal_confidence,
     warnings
   };
 }

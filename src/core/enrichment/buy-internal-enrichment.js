@@ -16,67 +16,68 @@ function normalizeCardKey(item) {
   return `${name}_${set}_${num}`.toLowerCase().replace(/[^a-z0-9]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '');
 }
 
-function generatePortalHints(facts, condition) {
-  const hints = {
-    priority: "low",
-    decision_hint: "info_only",
-    headline: "Analyse interne terminée",
-    badges: [],
-    recommended_destination: "unknown",
-    actions: [],
-    warnings: []
-  };
+function generateSimpleSignals(facts, confidence) {
+  const signals = [];
 
-  if (facts.global.internal_confidence < 0.5) {
-    hints.warnings.push("Données internes insuffisantes ou absentes");
+  if (confidence < 0.5) {
+    signals.push({
+      type: "missing_data",
+      owner: "global",
+      severity: "warning",
+      message: "Données internes insuffisantes ou absentes"
+    });
+    return signals;
   }
 
-  const mat = facts.owners.mathieu;
-  const ewan = facts.owners.ewan;
+  const c = facts.collection;
+  if (c.mathieu.owned) {
+    let msg = "Déjà en collection Mathieu";
+    if (c.mathieu.best_condition) msg += ` (${c.mathieu.best_condition})`;
+    signals.push({ type: "collection_owned", owner: "mathieu", severity: "info", message: msg });
+  }
   
-  if (facts.global.already_owned_better_condition) {
-    hints.priority = "medium";
-    hints.decision_hint = "verify_before_buy";
-    hints.headline = "Déjà possédée en meilleur état";
-    hints.badges.push("Déjà possédée", "Meilleur état existant");
-    hints.recommended_destination = "avoid_duplicate";
-    hints.actions.push("Vérifier si l'achat améliore vraiment la collection", "Éviter achat collection sauf très bonne décote");
-  } else if (!mat.collection_owned && facts.global.internal_confidence > 0.5) {
-    hints.priority = "high";
-    hints.decision_hint = "buy";
-    hints.headline = "Manque dans la collection Mathieu";
-    hints.badges.push("Manque Collection M");
-    hints.recommended_destination = "collection_mathieu";
-    hints.actions.push("Prioriser pour la collection personnelle");
-  } else if (!ewan.collection_owned && facts.global.internal_confidence > 0.5) {
-    hints.priority = "medium";
-    hints.decision_hint = "buy";
-    hints.headline = "Manque dans la collection Ewan";
-    hints.badges.push("Manque Collection E");
-    hints.recommended_destination = "collection_ewan";
-    hints.actions.push("Compléter la collection Ewan");
-  } else if (facts.global.sale_velocity === "high") {
-    hints.priority = "high";
-    hints.decision_hint = "buy_more";
-    hints.headline = "Forte rotation des ventes";
-    hints.badges.push("Vente rapide");
-    hints.recommended_destination = "quick_resale";
-    hints.actions.push("Bon potentiel d'achat revente");
-  } else if (mat.stock_quantity > 3 || ewan.stock_quantity > 3) {
-    hints.priority = "low";
-    hints.decision_hint = "avoid";
-    hints.headline = "Surstock détecté";
-    hints.badges.push("Surstock");
-    hints.recommended_destination = "avoid_duplicate";
-    hints.actions.push("Ne pas acheter, écoulage de stock prioritaire");
-  } else {
-    hints.priority = "low";
-    hints.decision_hint = "info_only";
-    hints.headline = "Pas d'opportunité évidente détectée";
-    hints.recommended_destination = "stock";
+  if (c.ewan.owned) {
+    let msg = "Déjà en collection Ewan";
+    if (c.ewan.best_condition) msg += ` (${c.ewan.best_condition})`;
+    signals.push({ type: "collection_owned", owner: "ewan", severity: "info", message: msg });
   }
 
-  return hints;
+  const totalStock = facts.stock.mathieu + facts.stock.ewan;
+  if (totalStock > 0) {
+    signals.push({
+      type: "already_in_stock",
+      owner: "global",
+      severity: "info",
+      message: `Déjà en stock (M:${facts.stock.mathieu}, E:${facts.stock.ewan})`
+    });
+  }
+
+  if (facts.sales.already_sold) {
+    signals.push({
+      type: "already_sold",
+      owner: "global",
+      severity: "info",
+      message: "Déjà vendu historiquement"
+    });
+  }
+
+  if (facts.cote.last_value) {
+    signals.push({
+      type: "cote_known",
+      owner: "global",
+      severity: "info",
+      message: `Cote connue: ${facts.cote.last_value}€`
+    });
+  } else {
+    signals.push({
+      type: "cote_missing",
+      owner: "global",
+      severity: "warning",
+      message: "Aucune cote connue"
+    });
+  }
+
+  return signals;
 }
 
 async function enrichBuySnapshotWithInternalData(snapshot, context) {
@@ -89,19 +90,22 @@ async function enrichBuySnapshotWithInternalData(snapshot, context) {
     const enrichment = await getInternalEnrichment(cardKey, item.condition, context);
     
     const facts = {
-      owners: enrichment.owners,
-      global: enrichment.global
+      collection: enrichment.collection,
+      stock: enrichment.stock,
+      sales: enrichment.sales,
+      cote: enrichment.cote
     };
 
-    const hints = generatePortalHints(facts, item.condition);
+    const confidence = enrichment.internal_confidence;
+    const signals = generateSimpleSignals(facts, confidence);
 
     const enrichedItem = {
       line_id: item.line_id || "unknown",
-      card_key: cardKey,
-      input: item,
+      card_id: item.card_id || "unknown",
       facts: facts,
-      portal_hints: hints,
-      warnings: enrichment.warnings
+      simple_signals: signals,
+      warnings: enrichment.warnings,
+      confidence: confidence
     };
 
     if (enrichment.warnings.length > 0) {
@@ -128,4 +132,4 @@ async function enrichBuySnapshotWithInternalData(snapshot, context) {
   };
 }
 
-module.exports = { enrichBuySnapshotWithInternalData, normalizeCardKey, generatePortalHints };
+module.exports = { enrichBuySnapshotWithInternalData, normalizeCardKey, generateSimpleSignals };

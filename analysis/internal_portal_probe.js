@@ -114,16 +114,16 @@ async function run() {
       items_total: items.length,
       items_enriched: result.summary.items_enriched,
       items_with_warnings: result.summary.items_with_warnings,
-      confidence_average: Number((result.items.reduce((acc, item) => acc + item.facts.global.internal_confidence, 0) / result.items.length).toFixed(2))
+      confidence_average: Number((result.items.reduce((acc, item) => acc + item.confidence, 0) / result.items.length).toFixed(2))
     },
     duration_ms: duration,
     details: result.items.map(item => ({
       line_id: item.line_id,
-      card_key: item.card_key,
-      input_card_id: item.input.card_id || "missing",
+      card_id: item.card_id,
       facts: item.facts,
-      portal_hints: item.portal_hints,
-      warnings: item.warnings
+      simple_signals: item.simple_signals,
+      warnings: item.warnings,
+      confidence: item.confidence
     }))
   };
 
