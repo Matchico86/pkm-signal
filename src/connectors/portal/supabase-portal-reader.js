@@ -13,7 +13,7 @@ const COTE_CANDIDATES = [
 ];
 
 const COLLECTION_CANDIDATES = [
-  'collection', 'collections', 'collection_items', 'user_collection'
+  'collection_cards', 'collection', 'collections', 'collection_items', 'user_collection', 'card_collection', 'portal_collection', 'stock_live_snapshots'
 ];
 
 function createPortalSupabaseClientFromEnv() {
@@ -289,7 +289,8 @@ async function fetchSetProgress(setId) {
   const { data: setData, error: setError } = await client
     .from('pokemon_sets')
     .select('qt_total')
-    .eq('set_id', setId)
+    .or(`set_id.eq.${setId},tcgdex_id.eq.${setId},set_id_2.eq.${setId}`)
+    .limit(1)
     .single();
 
   if (setError || !setData || !setData.qt_total) {
@@ -309,19 +310,24 @@ async function fetchSetProgress(setId) {
   const ownersCount = {};
 
   collData.forEach(row => {
-    if (row.mathieu_owned) {
-      if (!ownersCount.mathieu) ownersCount.mathieu = new Set();
-      ownersCount.mathieu.add(row.card_id.toUpperCase());
-    }
-    if (row.ewan_owned) {
-      if (!ownersCount.ewan) ownersCount.ewan = new Set();
-      ownersCount.ewan.add(row.card_id.toUpperCase());
-    }
-    if (row.owner && row.owned) {
-      const rawOwner = String(row.owner).toLowerCase();
-      const rowOwner = (rawOwner === 'mat' || rawOwner === 'mathieu') ? 'mathieu' : (rawOwner === 'ewa' || rawOwner === 'ewan') ? 'ewan' : rawOwner;
-      if (!ownersCount[rowOwner]) ownersCount[rowOwner] = new Set();
-      ownersCount[rowOwner].add(row.card_id.toUpperCase());
+    if (row.mathieu_owned !== undefined || row.ewan_owned !== undefined) {
+      if (row.mathieu_owned) {
+        if (!ownersCount.mathieu) ownersCount.mathieu = new Set();
+        ownersCount.mathieu.add(row.card_id.toUpperCase());
+      }
+      if (row.ewan_owned) {
+        if (!ownersCount.ewan) ownersCount.ewan = new Set();
+        ownersCount.ewan.add(row.card_id.toUpperCase());
+      }
+    } else {
+      let rawOwner = row.owner ? String(row.owner).toLowerCase() : 'mathieu';
+      let rowOwner = (rawOwner === 'mat' || rawOwner === 'mathieu') ? 'mathieu' : (rawOwner === 'ewa' || rawOwner === 'ewan') ? 'ewan' : rawOwner;
+      
+      // Assume 'owned' is true if the row exists and 'owned' column is not explicitly false
+      if (row.owned !== false && row.card_id) {
+        if (!ownersCount[rowOwner]) ownersCount[rowOwner] = new Set();
+        ownersCount[rowOwner].add(row.card_id.toUpperCase());
+      }
     }
   });
 
