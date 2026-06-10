@@ -89,12 +89,32 @@ async function fetchPortalCoteHistoryByCardId(cardId, options = {}) {
     return { available: false, points: [], last_cote: null, last_cote_updated_at: null, warning: "portal_supabase_cote_table_not_found" };
   }
 
-  const { data, error } = await client
+  let data = null;
+  let error = null;
+
+  // Try ordering by date first
+  const resultDate = await client
     .from(resolvedCoteTable)
     .select('*')
     .eq('card_id', cardId)
     .order('date', { ascending: false, nullsFirst: false })
     .limit(100);
+
+  if (resultDate.error && resultDate.error.message.includes('does not exist')) {
+    // Fallback to created_at
+    const resultCreatedAt = await client
+      .from(resolvedCoteTable)
+      .select('*')
+      .eq('card_id', cardId)
+      .order('created_at', { ascending: false, nullsFirst: false })
+      .limit(100);
+    
+    data = resultCreatedAt.data;
+    error = resultCreatedAt.error;
+  } else {
+    data = resultDate.data;
+    error = resultDate.error;
+  }
 
   if (error) {
     return { available: false, points: [], last_cote: null, last_cote_updated_at: null, warning: `portal_supabase_cote_error: ${error.message}` };
