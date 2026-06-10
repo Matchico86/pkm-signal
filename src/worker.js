@@ -28,7 +28,7 @@ async function handleSessionEvent(payload) {
 
   const { session_id, slot, latest_snapshot } = record;
 
-  if (slot === 'buy.order') {
+  if (slot === 'buy.order' || slot === 'upsert_line' || slot === 'remove_line' || slot === 'update_order') {
     if (latest_snapshot) {
       if (latest_snapshot.event_type) {
         console.log(`[Worker] Événement reçu: buy.order event ${latest_snapshot.event_type} (session: ${session_id})`);

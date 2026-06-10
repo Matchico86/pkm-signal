@@ -93,7 +93,7 @@ async function processBuyEvent(eventPayload, existingSessionId = null) {
     const sessionInfo = {
       session_id: existingSessionId,
       domain: 'buy',
-      slot: 'buy.order',
+      slot: eventPayload.event_type || 'buy.order',
       external_ref: eventPayload.draft_order_id || 'unknown_order',
       snapshot: miniSnapshot // ou juste eventPayload
     };
