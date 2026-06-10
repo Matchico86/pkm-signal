@@ -1,6 +1,7 @@
 require('dotenv').config();
 const { createClient } = require('@supabase/supabase-js');
 const { processBuySnapshot } = require('./jobs/process-buy-snapshot');
+const { processBuyEvent } = require('./jobs/process-buy-event');
 const { processSellSnapshot } = require('./jobs/process-sell-snapshot');
 
 // Initialisation de Supabase
@@ -28,9 +29,14 @@ async function handleSessionEvent(payload) {
   const { session_id, slot, latest_snapshot } = record;
 
   if (slot === 'buy.order') {
-    console.log(`[Worker] Événement reçu: buy.order (session: ${session_id})`);
     if (latest_snapshot) {
-      await processBuySnapshot(latest_snapshot, session_id);
+      if (latest_snapshot.event_type) {
+        console.log(`[Worker] Événement reçu: buy.order event ${latest_snapshot.event_type} (session: ${session_id})`);
+        await processBuyEvent(latest_snapshot, session_id);
+      } else {
+        console.log(`[Worker] Événement reçu: buy.order full snapshot (session: ${session_id})`);
+        await processBuySnapshot(latest_snapshot, session_id);
+      }
     } else {
       console.warn(`[Worker] latest_snapshot manquant pour la session ${session_id}`);
     }

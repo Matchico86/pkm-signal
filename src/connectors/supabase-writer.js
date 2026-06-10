@@ -40,6 +40,21 @@ async function writeAssistantResults(sessionInfo, signals) {
   }
 }
 
+/**
+ * Marque tous les signaux liés à une entité comme 'resolved'.
+ */
+async function resolveAssistantSignals(sessionId, entityRef) {
+  try {
+    await supabaseConnector.updateSignalsStatusByEntity(sessionId, entityRef, 'resolved');
+    console.log(`[Supabase-Writer] Signaux neutralisés (resolved) pour l'entité ${entityRef}.`);
+    return { success: true };
+  } catch (err) {
+    console.error(`[Supabase-Writer] Erreur lors de la neutralisation :`, err.message);
+    return { success: false, error: err.message };
+  }
+}
+
 module.exports = {
-  writeAssistantResults
+  writeAssistantResults,
+  resolveAssistantSignals
 };

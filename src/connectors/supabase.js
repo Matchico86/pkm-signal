@@ -128,9 +128,27 @@ async function insertSignals(sessionId, runId, domain, slot, signalsArray) {
   }
 }
 
+/**
+ * Met à jour le statut des signaux liés à une entité précise (ex: line_id) dans une session.
+ */
+async function updateSignalsStatusByEntity(sessionId, entityRef, newStatus) {
+  if (!supabase) return;
+
+  const { error } = await supabase
+    .from('assist_signals')
+    .update({ status: newStatus })
+    .eq('session_id', sessionId)
+    .eq('entity_ref', entityRef);
+
+  if (error) {
+    console.error('[Supabase] Erreur updateSignalsStatusByEntity:', error);
+  }
+}
+
 module.exports = {
   upsertSession,
   createRun,
   updateRunStatus,
-  insertSignals
+  insertSignals,
+  updateSignalsStatusByEntity
 };
