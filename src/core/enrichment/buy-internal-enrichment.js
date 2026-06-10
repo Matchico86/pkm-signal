@@ -96,6 +96,10 @@ async function enrichBuySnapshotWithInternalData(snapshot, context) {
       cote: enrichment.cote
     };
 
+    if (item.internal_market_price_unit !== undefined && item.internal_market_price_unit !== null) {
+      facts.cote.last_value = item.internal_market_price_unit;
+    }
+
     const confidence = enrichment.internal_confidence;
     const signals = generateSimpleSignals(facts, confidence);
 
