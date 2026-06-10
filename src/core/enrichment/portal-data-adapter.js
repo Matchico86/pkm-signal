@@ -67,7 +67,11 @@ function mergeData(sheetsData, supabaseData, cardKey, inputCondition) {
     const owned = supaOwned !== undefined && supaOwned !== false ? supaOwned : (sheetO.collection_owned || false);
     const bestCond = supaO.collection_best_condition || sheetO.collection_best_condition || null;
     
-    collection[owner] = { owned, best_condition: bestCond };
+    collection[owner] = { 
+        owned: owned, 
+        best_condition: bestCond,
+        set_progress: supaO.set_progress || null 
+    };
     
     // Sheets has priority for stock and invest
     stock[owner] = sheetO.stock_quantity !== undefined ? sheetO.stock_quantity : (supaO.stock_quantity || 0);
@@ -108,7 +112,7 @@ const { fetchPortalContextByCardId } = require('../../connectors/portal/supabase
 
 const internalCache = new Map();
 
-async function getInternalEnrichment(cardKeysInput, condition, inputVariant, context = {}) {
+async function getInternalEnrichment(cardKeysInput, condition, inputVariant, setId, context = {}) {
   // On gère un ou plusieurs keys
   const cardKeys = Array.isArray(cardKeysInput) ? cardKeysInput : [cardKeysInput];
   const primaryKey = cardKeys[0]; // Clé principale pour le retour
@@ -161,14 +165,22 @@ async function getInternalEnrichment(cardKeysInput, condition, inputVariant, con
     }
 
     if (!supabasePortal) {
-      const supaResult = await fetchPortalContextByCardId(cardKeys); // Passons l'array !
-      if (supaResult && !supaResult.error) {
-        supaCacheKeys.forEach(ck => internalCache.set(ck, supaResult));
-      }
-      supabasePortal = supaResult;
-      if (supaResult) {
-        const w = supaResult.cote_history?.warning || supaResult.collection?.warning;
-        if (w) supabaseWarning = w;
+      try {
+        const sbReader = require('../../connectors/portal/supabase-portal-reader');
+        const supabaseDataLive = await sbReader.fetchPortalContextByCardId(cardKeys);
+        supabasePortal = supabaseDataLive;
+        if (supabasePortal.warning) {
+          supabaseWarning = supabasePortal.warning;
+        }
+        
+        if (setId) {
+          const setProgress = await sbReader.fetchSetProgress(setId);
+          if (setProgress) {
+            supabasePortal.set_progress = setProgress;
+          }
+        }
+      } catch (e) {
+        supabaseWarning = `portal_supabase_error: ${e.message}`;
       }
     }
   }

@@ -52,7 +52,22 @@ function generateSimpleSignals(facts, confidence, item = {}) {
       signals.push({ type: "collection_status", owner: ownersWithCollection.length === 1 ? ownersWithCollection[0] : "global", severity: "info", message: `Déjà en collection (${names})` });
     }
   } else {
-    signals.push({ type: "collection_status", owner: "global", severity: "info", message: "Absente des collections" });
+    // Determine set progress if available
+    let progressStr = "";
+    // We check if the global owner or mathieu has set_progress.
+    // If not, we just show Absente des collections
+    let bestProgress = null;
+    Object.keys(c).forEach(o => {
+      if (c[o].set_progress && (!bestProgress || c[o].set_progress.percent > bestProgress.percent)) {
+        bestProgress = c[o].set_progress;
+      }
+    });
+
+    if (bestProgress && bestProgress.total > 0 && item.set_id) {
+      progressStr = ` (Set ${item.set_id}: ${bestProgress.owned}/${bestProgress.total} - ${bestProgress.percent}%)`;
+    }
+
+    signals.push({ type: "collection_status", owner: "global", severity: "info", message: `Absente des collections${progressStr}` });
   }
 
   const s = facts.stock || {};
@@ -115,7 +130,7 @@ async function enrichBuySnapshotWithInternalData(snapshot, context) {
     const altKey = item.card_id ? item.card_id.toLowerCase() : null;
     const cardKeys = [...new Set([primaryKey, altKey, item.card_id].filter(Boolean))];
     
-    const enrichment = await getInternalEnrichment(cardKeys, item.condition, item.variant, context);
+    const enrichment = await getInternalEnrichment(cardKeys, item.condition, item.variant, item.set_id, context);
     
     const facts = {
       collection: enrichment.collection,

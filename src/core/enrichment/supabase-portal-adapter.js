@@ -19,6 +19,10 @@ function parseSupabaseData(supabaseExport, cardKey) {
         last_sell_price: null,
         average_sell_price: null
       };
+      
+      if (supabaseExport.set_progress && supabaseExport.set_progress[owner]) {
+        ownersData[owner].set_progress = supabaseExport.set_progress[owner];
+      }
     });
 
     return {

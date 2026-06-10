@@ -276,10 +276,72 @@ async function fetchPortalContextByCardId(cardId, options = {}) {
   return result;
 }
 
+async function fetchSetProgress(setId) {
+  const client = createPortalSupabaseClientFromEnv();
+  if (!setId || !client) return null;
+  if (!resolvedCollectionTable) {
+    try {
+      await discoverTables(client);
+    } catch(e) { return null; }
+  }
+
+  // 1. Get qt_total
+  const { data: setData, error: setError } = await client
+    .from('pokemon_sets')
+    .select('qt_total')
+    .eq('set_id', setId)
+    .single();
+
+  if (setError || !setData || !setData.qt_total) {
+    return null; // Silent fail if table not accessible or no data
+  }
+
+  const total = setData.qt_total;
+
+  // 2. Count owned unique cards
+  const { data: collData, error: collError } = await client
+    .from(resolvedCollectionTable)
+    .select('*')
+    .ilike('card_id', `${setId}-%`);
+
+  if (collError || !collData) return null;
+
+  const ownersCount = {};
+
+  collData.forEach(row => {
+    if (row.mathieu_owned) {
+      if (!ownersCount.mathieu) ownersCount.mathieu = new Set();
+      ownersCount.mathieu.add(row.card_id.toUpperCase());
+    }
+    if (row.ewan_owned) {
+      if (!ownersCount.ewan) ownersCount.ewan = new Set();
+      ownersCount.ewan.add(row.card_id.toUpperCase());
+    }
+    if (row.owner && row.owned) {
+      const rawOwner = String(row.owner).toLowerCase();
+      const rowOwner = (rawOwner === 'mat' || rawOwner === 'mathieu') ? 'mathieu' : (rawOwner === 'ewa' || rawOwner === 'ewan') ? 'ewan' : rawOwner;
+      if (!ownersCount[rowOwner]) ownersCount[rowOwner] = new Set();
+      ownersCount[rowOwner].add(row.card_id.toUpperCase());
+    }
+  });
+
+  const result = {};
+  for (const o of Object.keys(ownersCount)) {
+    const owned = ownersCount[o].size;
+    result[o] = {
+      owned,
+      total,
+      percent: Math.round((owned / total) * 100)
+    };
+  }
+  return result;
+}
+
 module.exports = {
   createPortalSupabaseClientFromEnv,
   checkPortalSupabaseConnection,
   fetchPortalCoteHistoryByCardId,
   fetchPortalCollectionByCardId,
-  fetchPortalContextByCardId
+  fetchPortalContextByCardId,
+  fetchSetProgress
 };
