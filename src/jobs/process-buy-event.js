@@ -75,19 +75,61 @@ async function processBuyEvent(eventPayload, existingSessionId = null) {
 
     const enrichedItem = enrichedData.items[0];
     
-    // Mapping des simple_signals vers des signaux compatibles Supabase Writer
-    const mappedSignals = (enrichedItem.simple_signals || []).map(sig => 
-      mapSimpleSignalToAssistantSignal(sig, enrichedItem)
-    );
+    const facts = enrichedItem.facts;
+    const collectionOwners = Object.keys(facts.collection || {}).filter(o => facts.collection[o].owned);
+    const stockOwners = Object.keys(facts.stock || {}).filter(o => facts.stock[o] > 0);
+    const investOwners = Object.keys(facts.invest || {}).filter(o => facts.invest[o] > 0);
+    
+    // Purchases and Sales
+    const purchaseOwners = Object.keys(facts.purchases || {}).filter(o => facts.purchases[o].last_buy_price !== null || facts.purchases[o].average_buy_price !== null);
+    const saleOwners = Object.keys(facts.sales || {}).filter(o => facts.sales[o].sold_quantity_12m > 0);
+
+    const consolidatedPayload = {
+      collection: {
+        owned: collectionOwners.length > 0,
+        owners: collectionOwners
+      },
+      stock: {
+        available: stockOwners.length > 0,
+        owners: stockOwners
+      },
+      invest: {
+        available: investOwners.length > 0,
+        owners: investOwners
+      },
+      purchases: {
+        has_purchases: purchaseOwners.length > 0,
+        owners: purchaseOwners,
+        details: facts.purchases || {}
+      },
+      sales: {
+        has_sales: saleOwners.length > 0,
+        owners: saleOwners,
+        details: facts.sales || {}
+      },
+      cote: {
+        known_in_history: !!(facts.cote && facts.cote.last_value),
+        last_value: facts.cote && facts.cote.last_value ? facts.cote.last_value : null
+      }
+    };
+
+    const consolidatedSignal = {
+      type: "card_analysis",
+      level: "info",
+      message: "Analyse consolidée",
+      context: {
+        draft_item_id: line.line_id,
+        card_id: line.card_id,
+        owner: "global",
+        payload: consolidatedPayload
+      }
+    };
+
+    const mappedSignals = [consolidatedSignal];
 
     // On loggue les résultats
-    console.log(`\n=== RÉSULTATS : SIGNAUX ÉVÉNEMENTIELS (${mappedSignals.length}) ===`);
-    mappedSignals.forEach((signal, index) => {
-      console.log(`\n[Signal #${index + 1}] - ${signal.type.toUpperCase()}`);
-      console.log(`  Severity: ${signal.level}`);
-      console.log(`  Message : ${signal.message}`);
-      console.log(`  Owner   : ${signal.context.owner}`);
-    });
+    console.log(`\n=== RÉSULTATS : SIGNAUX ÉVÉNEMENTIELS (1 consolidé) ===`);
+    console.log(JSON.stringify(consolidatedPayload, null, 2));
 
     // Enregistrement dans Supabase
     const sessionInfo = {

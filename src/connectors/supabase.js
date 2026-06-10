@@ -112,9 +112,11 @@ async function insertSignals(sessionId, runId, domain, slot, signalsArray) {
     run_id: runId,
     scope: sig.context && sig.context.draft_item_id ? 'item' : 'order',
     entity_ref: (sig.context && sig.context.draft_item_id) || (sig.context && sig.context.draft_order_id) || null,
+    card_id: (sig.context && sig.context.card_id) || null,
     severity: sig.level === 'warning' ? 'warning' : 'info',
     title: sig.type,
     message: sig.message,
+    payload: (sig.context && sig.context.payload) || null,
     status: 'active'
   }));
 

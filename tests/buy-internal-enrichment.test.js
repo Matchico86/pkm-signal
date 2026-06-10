@@ -60,8 +60,8 @@ const snapshot = {
     assert.strictEqual(getRes("L3").confidence, 0.1, "Test 3 Failed");
     assert.strictEqual(getRes("L3").facts.stock.mathieu || 0, 0, "Test 3b Failed");
 
-    // 4. Carte déjà vendue plusieurs fois (removed already_sold signal, so just skip or check facts)
-    assert.strictEqual(getRes("L4").facts.sales.already_sold, true, "Test 4 Failed");
+    // 4. Carte déjà vendue plusieurs fois
+    assert.strictEqual(getRes("L4").facts.sales.mathieu.sold_quantity_12m, 12, "Test 4 Failed");
 
     // 5. Carte en stock élevé
     assert.strictEqual(getRes("L5").facts.stock.mathieu, 50, "Test 5 Failed");
