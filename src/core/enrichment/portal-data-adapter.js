@@ -53,6 +53,7 @@ function mergeData(sheetsData, supabaseData, cardKey, inputCondition) {
   const collection = {};
   const stock = {};
   const invest = {};
+  const purchases = {};
   let totalSold = 0;
 
   ownersSet.forEach(owner => {
@@ -71,6 +72,12 @@ function mergeData(sheetsData, supabaseData, cardKey, inputCondition) {
     stock[owner] = sheetO.stock_quantity !== undefined ? sheetO.stock_quantity : (supaO.stock_quantity || 0);
     invest[owner] = sheetO.invest_quantity !== undefined ? sheetO.invest_quantity : (supaO.invest_quantity || 0);
 
+    // Purchases (only Sheets)
+    purchases[owner] = {
+      last_buy_price: sheetO.last_buy_price !== undefined ? sheetO.last_buy_price : null,
+      average_buy_price: sheetO.average_buy_price !== undefined ? sheetO.average_buy_price : null
+    };
+
     totalSold += (sheetO.sold_quantity_12m || 0);
   });
 
@@ -81,6 +88,7 @@ function mergeData(sheetsData, supabaseData, cardKey, inputCondition) {
     collection,
     stock,
     invest,
+    purchases,
     sales: { already_sold: totalSold > 0 },
     cote: { last_value: coteData.portal_cote, updated_at: coteData.portal_cote_updated_at },
     internal_confidence,

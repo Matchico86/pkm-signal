@@ -59,6 +59,19 @@ function generateSimpleSignals(facts, confidence) {
     signals.push({ type: "invest_status", owner: "global", severity: "info", message: "Aucun stock invest" });
   }
 
+  const p = facts.purchases || {};
+  const ownersWithPurchases = Object.keys(p).filter(o => p[o].last_buy_price !== null || p[o].average_buy_price !== null);
+  if (ownersWithPurchases.length > 0) {
+    const details = ownersWithPurchases.map(o => {
+      const avg = p[o].average_buy_price;
+      const val = avg !== null ? Math.round(avg) : '?';
+      return `${capitalize(o).substring(0,1)}:${val}€`;
+    }).join(', ');
+    signals.push({ type: "buy_status", owner: ownersWithPurchases.length === 1 ? ownersWithPurchases[0] : "global", severity: "info", message: `Achat moyen (${details})` });
+  } else {
+    signals.push({ type: "buy_status", owner: "global", severity: "info", message: "Aucun achat connu" });
+  }
+
   if (facts.cote && facts.cote.last_value) {
     signals.push({
       type: "cote_known",
@@ -91,6 +104,7 @@ async function enrichBuySnapshotWithInternalData(snapshot, context) {
       collection: enrichment.collection,
       stock: enrichment.stock,
       invest: enrichment.invest,
+      purchases: enrichment.purchases,
       sales: enrichment.sales,
       cote: enrichment.cote
     };
