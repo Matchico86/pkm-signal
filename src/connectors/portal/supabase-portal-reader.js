@@ -96,7 +96,7 @@ async function fetchPortalCoteHistoryByCardId(cardId, options = {}) {
   const resultDate = await client
     .from(resolvedCoteTable)
     .select('*')
-    .eq('card_id', cardId)
+    .ilike('card_id', cardId)
     .order('date', { ascending: false, nullsFirst: false })
     .limit(100);
 
@@ -105,7 +105,7 @@ async function fetchPortalCoteHistoryByCardId(cardId, options = {}) {
     const resultCreatedAt = await client
       .from(resolvedCoteTable)
       .select('*')
-      .eq('card_id', cardId)
+      .ilike('card_id', cardId)
       .order('created_at', { ascending: false, nullsFirst: false })
       .limit(100);
     
@@ -166,7 +166,7 @@ async function fetchPortalCollectionByCardId(cardId, options = {}) {
   const { data, error } = await client
     .from(resolvedCollectionTable)
     .select('*')
-    .eq('card_id', cardId);
+    .ilike('card_id', cardId);
 
   if (error) {
     baseResult.warning = `portal_supabase_collection_error: ${error.message}`;
