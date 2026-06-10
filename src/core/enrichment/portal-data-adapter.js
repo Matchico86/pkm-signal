@@ -120,13 +120,12 @@ async function getInternalEnrichment(cardKey, inputCondition, context) {
       const cached = internalCache.get(cardKey);
       if (cached && cached.ok) {
         sheetsExport = cached;
-      } else if (cached && !cached.ok) {
-        fetchWarning = `sheets_api_error: ${cached.error || 'Unknown error'} (cached)`;
       }
-    } else {
+    }
+    if (!sheetsExport) {
       const bundle = await fetchSheetsBundle("STOCK,PURCH_ITEMS,SALES_ITEMS,INVEST_ITEMS", cardKey);
-      internalCache.set(cardKey, bundle); // Cache success OR failure to prevent spam
       if (bundle && bundle.ok) {
+        internalCache.set(cardKey, bundle); // Only cache success
         sheetsExport = bundle;
       } else {
         fetchWarning = `sheets_api_error: ${bundle?.error || 'Unknown error'}`;
@@ -145,7 +144,9 @@ async function getInternalEnrichment(cardKey, inputCondition, context) {
       }
     } else {
       const supaResult = await fetchPortalContextByCardId(cardKey);
-      internalCache.set(supaCacheKey, supaResult);
+      if (supaResult && !supaResult.error) {
+        internalCache.set(supaCacheKey, supaResult);
+      }
       supabasePortal = supaResult;
       if (supaResult) {
         const w = supaResult.cote_history?.warning || supaResult.collection?.warning;

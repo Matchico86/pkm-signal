@@ -113,10 +113,21 @@ async function processBuyEvent(eventPayload, existingSessionId = null) {
       }
     };
 
+    // Construire le message lisible (pour l'UI de PKM Portal)
+    const messages = [];
+    if (enrichedItem.simple_signals && enrichedItem.simple_signals.length > 0) {
+      enrichedItem.simple_signals.forEach(sig => {
+        if (sig.type !== 'cote_missing' && sig.type !== 'missing_data') {
+          messages.push(sig.message);
+        }
+      });
+    }
+    const combinedMessage = messages.length > 0 ? messages.join(' | ') : "Aucune donnée interne";
+
     const consolidatedSignal = {
       type: "card_analysis",
       level: "info",
-      message: "Analyse consolidée",
+      message: combinedMessage,
       context: {
         draft_item_id: line.line_id,
         card_id: line.card_id,
@@ -130,6 +141,10 @@ async function processBuyEvent(eventPayload, existingSessionId = null) {
     // On loggue les résultats
     console.log(`\n=== RÉSULTATS : SIGNAUX ÉVÉNEMENTIELS (1 consolidé) ===`);
     console.log(JSON.stringify(consolidatedPayload, null, 2));
+
+    if (enrichedItem.warnings && enrichedItem.warnings.length > 0) {
+      console.warn(`[Job Event] Warnings de l'enrichissement :`, enrichedItem.warnings);
+    }
 
     // Enregistrement dans Supabase
     const sessionInfo = {
