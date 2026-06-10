@@ -53,6 +53,10 @@ async function processBuyEvent(eventPayload, existingSessionId = null) {
       return;
     }
 
+    console.log(`\n--- DEBUG PAYLOAD COMPLET ---`);
+    console.log(JSON.stringify(line, null, 2));
+    console.log(`-----------------------------\n`);
+
     // On crée un mini-snapshot pour l'enrichisseur
     const miniSnapshot = {
       snapshot_ref: existingSessionId || "event-snapshot",

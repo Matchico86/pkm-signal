@@ -1,19 +1,20 @@
 const { getInternalEnrichment } = require('./portal-data-adapter');
 
 function normalizeCardKey(item) {
-  if (item.card_id) {
-    return item.card_id.toLowerCase();
-  }
-  
+  // Priorité au format TCGDex (ex: TWM-188-FR) car c'est ce que Sheets et Supabase attendent
   if (item.set_id && item.number) {
-    const lang = item.language || "fr";
-    return `${item.set_id}_${item.number}_${lang}`.toLowerCase().replace(/[^a-z0-9_]/g, '_');
+    const lang = item.language || "FR";
+    return `${item.set_id}-${item.number}-${lang}`.toUpperCase();
   }
 
-  const name = item.name || "unknown";
-  const set = item.set_name || "unknown";
+  if (item.card_id) {
+    return item.card_id.toUpperCase();
+  }
+
+  const name = item.name || item.card_name || "unknown";
+  const set = item.set_name || item.set_id || "unknown";
   const num = item.number || "unknown";
-  return `${name}_${set}_${num}`.toLowerCase().replace(/[^a-z0-9]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '');
+  return `${name}_${set}_${num}`.toUpperCase().replace(/[^A-Z0-9-]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '');
 }
 
 function generateSimpleSignals(facts, confidence) {

@@ -5,19 +5,19 @@ console.log("=== Tests Buy Internal Enrichment ===");
 
 const MOCK_SHEETS = {
   cards: {
-    "test_owned_mathieu": { mathieu_owned: true, mathieu_condition: "EX" },
-    "test_conflict": { mathieu_stock: 5, portal_cote: 100 },
-    "test_sold": { mathieu_sold: 12, ewan_sold: 0 },
-    "test_stock": { mathieu_stock: 50 },
-    "test_invest": { ewan_invest: 5 },
-    "test_split_owners": { ewan_stock: 2 }
+    "TEST_OWNED_MATHIEU": { mathieu_owned: true, mathieu_condition: "EX" },
+    "TEST_CONFLICT": { mathieu_stock: 5, portal_cote: 100 },
+    "TEST_SOLD": { mathieu_sold: 12, ewan_sold: 0 },
+    "TEST_STOCK": { mathieu_stock: 50 },
+    "TEST_INVEST": { ewan_invest: 5 },
+    "TEST_SPLIT_OWNERS": { ewan_stock: 2 }
   }
 };
 
 const MOCK_SUPABASE = {
   cards: {
-    "test_conflict": { m_stock: 3, cote: 150 }, // Conflict with sheets
-    "test_split_owners": { m_owned: true }
+    "TEST_CONFLICT": { m_stock: 3, cote: 150 }, // Conflict with sheets
+    "TEST_SPLIT_OWNERS": { m_owned: true }
   }
 };
 

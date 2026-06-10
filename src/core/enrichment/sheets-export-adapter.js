@@ -48,8 +48,8 @@ function parseSheetsData(sheetsExport, cardKey) {
     const investRows = d.INVEST_ITEMS.rows || [];
     const salesRows = d.SALES_ITEMS.rows || [];
 
-    const normCardKey = cardKey.toLowerCase();
-    const isTarget = r => r.CARD_ID && r.CARD_ID.toLowerCase() === normCardKey;
+    const normCardKey = cardKey.toUpperCase();
+    const isTarget = r => r.CARD_ID && r.CARD_ID.toUpperCase() === normCardKey;
 
     const stockData = stockRows.find(isTarget);
     if (!stockData) return null;
@@ -157,7 +157,7 @@ function parseSheetsData(sheetsExport, cardKey) {
   const rows = Array.isArray(sheetsExport) ? sheetsExport : (sheetsExport.data || []);
   if (!Array.isArray(rows) || rows.length === 0) return null;
 
-  const row = rows.find(r => r.CARD_ID && r.CARD_ID.toLowerCase() === cardKey.toLowerCase());
+  const row = rows.find(r => r.CARD_ID && r.CARD_ID.toUpperCase() === cardKey.toUpperCase());
   if (!row) return null;
 
   return {
