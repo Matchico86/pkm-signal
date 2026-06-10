@@ -29,46 +29,37 @@ function generateSimpleSignals(facts, confidence) {
     return signals;
   }
 
-  const c = facts.collection;
-  if (c.mathieu.owned && c.ewan.owned) {
-    signals.push({ type: "collection_status", owner: "global", severity: "info", message: "Déjà en collection (Mathieu & Ewan)" });
-  } else if (c.mathieu.owned) {
-    signals.push({ type: "collection_status", owner: "mathieu", severity: "info", message: "Déjà en collection Mathieu" });
-  } else if (c.ewan.owned) {
-    signals.push({ type: "collection_status", owner: "ewan", severity: "info", message: "Déjà en collection Ewan" });
+  const capitalize = s => s.charAt(0).toUpperCase() + s.slice(1);
+
+  const c = facts.collection || {};
+  const ownersWithCollection = Object.keys(c).filter(o => c[o].owned);
+  
+  if (ownersWithCollection.length > 0) {
+    const names = ownersWithCollection.map(capitalize).join(' & ');
+    signals.push({ type: "collection_status", owner: ownersWithCollection.length === 1 ? ownersWithCollection[0] : "global", severity: "info", message: `Déjà en collection (${names})` });
   } else {
     signals.push({ type: "collection_status", owner: "global", severity: "info", message: "Absente des collections" });
   }
 
-  const stockM = facts.stock?.mathieu || 0;
-  const stockE = facts.stock?.ewan || 0;
-  const totalStock = stockM + stockE;
-  if (totalStock > 0) {
-    signals.push({
-      type: "stock_status",
-      owner: "global",
-      severity: "info",
-      message: `En stock (M:${stockM}, E:${stockE})`
-    });
+  const s = facts.stock || {};
+  const ownersWithStock = Object.keys(s).filter(o => s[o] > 0);
+  if (ownersWithStock.length > 0) {
+    const details = ownersWithStock.map(o => `${capitalize(o).substring(0,1)}:${s[o]}`).join(', ');
+    signals.push({ type: "stock_status", owner: ownersWithStock.length === 1 ? ownersWithStock[0] : "global", severity: "info", message: `En stock (${details})` });
   } else {
     signals.push({ type: "stock_status", owner: "global", severity: "info", message: "Aucun stock" });
   }
 
-  const investM = facts.invest?.mathieu || 0;
-  const investE = facts.invest?.ewan || 0;
-  const totalInvest = investM + investE;
-  if (totalInvest > 0) {
-    signals.push({
-      type: "invest_status",
-      owner: "global",
-      severity: "info",
-      message: `En invest (M:${investM}, E:${investE})`
-    });
+  const i = facts.invest || {};
+  const ownersWithInvest = Object.keys(i).filter(o => i[o] > 0);
+  if (ownersWithInvest.length > 0) {
+    const details = ownersWithInvest.map(o => `${capitalize(o).substring(0,1)}:${i[o]}`).join(', ');
+    signals.push({ type: "invest_status", owner: ownersWithInvest.length === 1 ? ownersWithInvest[0] : "global", severity: "info", message: `En invest (${details})` });
   } else {
     signals.push({ type: "invest_status", owner: "global", severity: "info", message: "Aucun stock invest" });
   }
 
-  if (facts.cote.last_value) {
+  if (facts.cote && facts.cote.last_value) {
     signals.push({
       type: "cote_known",
       owner: "global",

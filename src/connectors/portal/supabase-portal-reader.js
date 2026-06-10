@@ -127,10 +127,7 @@ async function fetchPortalCollectionByCardId(cardId, options = {}) {
   const client = createPortalSupabaseClientFromEnv();
   
   const baseResult = {
-    owners: {
-      mathieu: { owned: false, quantity: 0, best_condition: null, versions: [] },
-      ewan: { owned: false, quantity: 0, best_condition: null, versions: [] }
-    },
+    owners: {},
     warning: "portal_supabase_collection_missing"
   };
 
@@ -157,24 +154,25 @@ async function fetchPortalCollectionByCardId(cardId, options = {}) {
   }
 
   if (!data || data.length === 0) {
-    // Par défaut le warning est bien positionné à missing
     return { collection: baseResult };
   }
 
-  baseResult.warning = null; // On a trouvé de la donnée
+  baseResult.warning = null; 
 
-  // Déduction métier basique basée sur les colonnes "usuelles" (owner, mathieu, ewan)
+  const getOwnerKey = (rawName) => {
+    const low = String(rawName).toLowerCase();
+    if (low === 'mat' || low === 'mathieu') return 'mathieu';
+    if (low === 'ewa' || low === 'ewan') return 'ewan';
+    return low;
+  };
+
+  const initOwner = () => ({ owned: false, quantity: 0, best_condition: null, versions: [] });
+
   data.forEach(row => {
-    let targetOwner = null;
-    const isMathieu = row.owner === 'mathieu' || row.owner === 'MAT' || row.mathieu_owned === true;
-    const isEwan = row.owner === 'ewan' || row.owner === 'EWA' || row.ewan_owned === true;
-
-    if (isMathieu) targetOwner = baseResult.owners.mathieu;
-    if (isEwan) targetOwner = baseResult.owners.ewan;
-    
-    // Si la table est du type 1 ligne par carte contenant mathieu/ewan_owned
-    if (!targetOwner && row.mathieu_owned !== undefined) {
+    // Si la table contient des colonnes mathieu_owned, ewan_owned
+    if (row.mathieu_owned !== undefined || row.ewan_owned !== undefined) {
       if (row.mathieu_owned) {
+        if (!baseResult.owners.mathieu) baseResult.owners.mathieu = initOwner();
         baseResult.owners.mathieu.owned = true;
         baseResult.owners.mathieu.quantity += Number(row.mathieu_qty || 1);
         if (row.mathieu_condition && !baseResult.owners.mathieu.best_condition) {
@@ -182,22 +180,26 @@ async function fetchPortalCollectionByCardId(cardId, options = {}) {
         }
       }
       if (row.ewan_owned) {
+        if (!baseResult.owners.ewan) baseResult.owners.ewan = initOwner();
         baseResult.owners.ewan.owned = true;
         baseResult.owners.ewan.quantity += Number(row.ewan_qty || 1);
         if (row.ewan_condition && !baseResult.owners.ewan.best_condition) {
           baseResult.owners.ewan.best_condition = row.ewan_condition;
         }
       }
-      return;
     }
 
-    if (targetOwner) {
+    // Si la table contient une colonne owner (standard)
+    if (row.owner || row.user_id) {
+      const ownerName = getOwnerKey(row.owner || row.user_id);
+      if (!baseResult.owners[ownerName]) baseResult.owners[ownerName] = initOwner();
+      
+      const targetOwner = baseResult.owners[ownerName];
       targetOwner.owned = true;
       targetOwner.quantity += Number(row.quantity || row.qty || 1);
       
       const condition = row.condition || row.state || row.etat || null;
       if (condition && !targetOwner.best_condition) {
-        // Idéalement il faudrait ranker, mais on prend le premier ou on laisse faire l'adaptateur parent
         targetOwner.best_condition = condition;
       }
     }

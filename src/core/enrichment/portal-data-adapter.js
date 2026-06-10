@@ -23,16 +23,13 @@ function getSaleVelocity(totalSold) {
 function mergeData(sheetsData, supabaseData, cardKey, inputCondition) {
   const warnings = [];
   let internal_confidence = 0.0;
-  let finalData = null;
 
   if (!sheetsData && !supabaseData) {
     return {
       card_key: cardKey,
-      collection: {
-        mathieu: { owned: false, best_condition: null },
-        ewan: { owned: false, best_condition: null }
-      },
-      stock: { mathieu: 0, ewan: 0 },
+      collection: {},
+      stock: {},
+      invest: {},
       sales: { already_sold: false },
       cote: { last_value: null, updated_at: null },
       internal_confidence: 0.1,
@@ -40,60 +37,52 @@ function mergeData(sheetsData, supabaseData, cardKey, inputCondition) {
     };
   }
 
-  if (supabaseData && sheetsData) {
-    internal_confidence = 1.0;
-    finalData = JSON.parse(JSON.stringify(supabaseData));
-    
-    if (sheetsData.owners.mathieu.stock_quantity !== supabaseData.owners.mathieu.stock_quantity) {
-      warnings.push("conflict_sheets_supabase: mathieu stock differs");
-    }
-    if (sheetsData.global.portal_cote && supabaseData.global.portal_cote && sheetsData.global.portal_cote !== supabaseData.global.portal_cote) {
-      warnings.push("conflict_sheets_supabase: portal cote differs");
-    }
-    if (sheetsData.warnings && sheetsData.warnings.length > 0) {
-      warnings.push(...sheetsData.warnings);
-    }
-  } else if (supabaseData) {
-    internal_confidence = 0.9;
-    finalData = JSON.parse(JSON.stringify(supabaseData));
-  } else if (sheetsData) {
-    internal_confidence = 0.7;
-    finalData = JSON.parse(JSON.stringify(sheetsData));
-    if (sheetsData.warnings && sheetsData.warnings.length > 0) {
-      warnings.push(...sheetsData.warnings);
-    }
+  internal_confidence = (sheetsData && supabaseData) ? 1.0 : (supabaseData ? 0.9 : 0.7);
+
+  if (sheetsData && sheetsData.warnings && sheetsData.warnings.length > 0) {
+    warnings.push(...sheetsData.warnings);
+  }
+  if (sheetsData && supabaseData && sheetsData.global.portal_cote && supabaseData.global.portal_cote && sheetsData.global.portal_cote !== supabaseData.global.portal_cote) {
+    warnings.push("conflict_sheets_supabase: portal cote differs");
   }
 
-  let totalSold = finalData.owners.mathieu.sold_quantity_12m + finalData.owners.ewan.sold_quantity_12m;
-  let alreadySold = totalSold > 0;
+  const ownersSet = new Set();
+  if (sheetsData && sheetsData.owners) Object.keys(sheetsData.owners).forEach(o => ownersSet.add(o));
+  if (supabaseData && supabaseData.owners) Object.keys(supabaseData.owners).forEach(o => ownersSet.add(o));
+  
+  const collection = {};
+  const stock = {};
+  const invest = {};
+  let totalSold = 0;
+
+  ownersSet.forEach(owner => {
+    // Supabase has priority for collection
+    const supaO = (supabaseData && supabaseData.owners) ? supabaseData.owners[owner] || {} : {};
+    const sheetO = (sheetsData && sheetsData.owners) ? sheetsData.owners[owner] || {} : {};
+    
+    // Sheets fallback for collection if missing in Supabase
+    const supaOwned = supaO.collection_owned;
+    const owned = supaOwned !== undefined && supaOwned !== false ? supaOwned : (sheetO.collection_owned || false);
+    const bestCond = supaO.collection_best_condition || sheetO.collection_best_condition || null;
+    
+    collection[owner] = { owned, best_condition: bestCond };
+    
+    // Sheets has priority for stock and invest
+    stock[owner] = sheetO.stock_quantity !== undefined ? sheetO.stock_quantity : (supaO.stock_quantity || 0);
+    invest[owner] = sheetO.invest_quantity !== undefined ? sheetO.invest_quantity : (supaO.invest_quantity || 0);
+
+    totalSold += (sheetO.sold_quantity_12m || 0);
+  });
+
+  const coteData = (supabaseData && supabaseData.global && supabaseData.global.portal_cote) ? supabaseData.global : (sheetsData ? sheetsData.global : { portal_cote: null, portal_cote_updated_at: null });
 
   return {
     card_key: cardKey,
-    collection: {
-      mathieu: {
-        owned: finalData.owners.mathieu.collection_owned,
-        best_condition: finalData.owners.mathieu.collection_best_condition
-      },
-      ewan: {
-        owned: finalData.owners.ewan.collection_owned,
-        best_condition: finalData.owners.ewan.collection_best_condition
-      }
-    },
-    stock: {
-      mathieu: finalData.owners.mathieu.stock_quantity,
-      ewan: finalData.owners.ewan.stock_quantity
-    },
-    invest: {
-      mathieu: finalData.owners.mathieu.invest_quantity || 0,
-      ewan: finalData.owners.ewan.invest_quantity || 0
-    },
-    sales: {
-      already_sold: alreadySold
-    },
-    cote: {
-      last_value: finalData.global.portal_cote,
-      updated_at: finalData.global.portal_cote_updated_at
-    },
+    collection,
+    stock,
+    invest,
+    sales: { already_sold: totalSold > 0 },
+    cote: { last_value: coteData.portal_cote, updated_at: coteData.portal_cote_updated_at },
     internal_confidence,
     warnings
   };

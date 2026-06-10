@@ -6,31 +6,23 @@ function parseSupabaseData(supabaseExport, cardKey) {
     const c = supabaseExport.collection?.owners || {};
     const h = supabaseExport.cote_history || {};
     
+    const ownersData = {};
+    Object.keys(c).forEach(owner => {
+      ownersData[owner] = {
+        collection_owned: c[owner].owned || false,
+        collection_best_condition: c[owner].best_condition || null,
+        stock_quantity: c[owner].quantity || 0,
+        invest_quantity: 0,
+        sold_quantity_12m: 0,
+        last_buy_price: null,
+        average_buy_price: null,
+        last_sell_price: null,
+        average_sell_price: null
+      };
+    });
+
     return {
-      owners: {
-        mathieu: {
-          collection_owned: c.mathieu?.owned || false,
-          collection_best_condition: c.mathieu?.best_condition || null,
-          stock_quantity: c.mathieu?.quantity || 0,
-          invest_quantity: 0,
-          sold_quantity_12m: 0,
-          last_buy_price: null,
-          average_buy_price: null,
-          last_sell_price: null,
-          average_sell_price: null
-        },
-        ewan: {
-          collection_owned: c.ewan?.owned || false,
-          collection_best_condition: c.ewan?.best_condition || null,
-          stock_quantity: c.ewan?.quantity || 0,
-          invest_quantity: 0,
-          sold_quantity_12m: 0,
-          last_buy_price: null,
-          average_buy_price: null,
-          last_sell_price: null,
-          average_sell_price: null
-        }
-      },
+      owners: ownersData,
       global: {
         portal_cote: h.last_cote || null,
         portal_cote_updated_at: h.last_cote_updated_at || null
