@@ -93,22 +93,23 @@ async function fetchPortalCoteHistoryByCardId(cardId, options = {}) {
   let error = null;
 
   const keys = Array.isArray(cardId) ? cardId : [cardId];
-  const orCondition = keys.map(k => `card_id.ilike.${k}`).join(',');
 
   // Try ordering by date first
   const resultDate = await client
     .from(resolvedCoteTable)
     .select('*')
-    .or(orCondition)
+    .in('card_id', keys)
     .order('date', { ascending: false, nullsFirst: false })
     .limit(100);
 
   if (resultDate.error && resultDate.error.message.includes('does not exist')) {
-    // Fallback to created_at
+    // Fallback to cote_date or created_at
+    // On essaie d'abord de trier par cote_date, puis si ça plante on fera en JS. 
+    // Pour l'instant on se rabat sur created_at qui existe toujours
     const resultCreatedAt = await client
       .from(resolvedCoteTable)
       .select('*')
-      .or(orCondition)
+      .in('card_id', keys)
       .order('created_at', { ascending: false, nullsFirst: false })
       .limit(100);
     
@@ -129,10 +130,13 @@ async function fetchPortalCoteHistoryByCardId(cardId, options = {}) {
 
   // Fallback map pour coller aux structures probables
   const points = data.map(r => ({
-    date: r.date || r.created_at || null,
+    date: r.date || r.cote_date || r.created_at || null,
     value: Number(r.value || r.cote || r.price || 0),
     source: "portal_supabase"
   }));
+
+  // Trie les points par date (au cas où on n'a pas pu trier correctement côté SQL)
+  points.sort((a, b) => new Date(b.date) - new Date(a.date));
 
   const lastPoint = points[0];
 
@@ -167,12 +171,11 @@ async function fetchPortalCollectionByCardId(cardId, options = {}) {
   }
 
   const keys = Array.isArray(cardId) ? cardId : [cardId];
-  const orCondition = keys.map(k => `card_id.ilike.${k}`).join(',');
 
   const { data, error } = await client
     .from(resolvedCollectionTable)
     .select('*')
-    .or(orCondition);
+    .in('card_id', keys);
 
   if (error) {
     baseResult.warning = `portal_supabase_collection_error: ${error.message}`;
