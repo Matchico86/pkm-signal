@@ -30,35 +30,42 @@ function generateSimpleSignals(facts, confidence) {
   }
 
   const c = facts.collection;
-  if (c.mathieu.owned) {
-    let msg = "Déjà en collection Mathieu";
-    if (c.mathieu.best_condition) msg += ` (${c.mathieu.best_condition})`;
-    signals.push({ type: "collection_owned", owner: "mathieu", severity: "info", message: msg });
-  }
-  
-  if (c.ewan.owned) {
-    let msg = "Déjà en collection Ewan";
-    if (c.ewan.best_condition) msg += ` (${c.ewan.best_condition})`;
-    signals.push({ type: "collection_owned", owner: "ewan", severity: "info", message: msg });
+  if (c.mathieu.owned && c.ewan.owned) {
+    signals.push({ type: "collection_status", owner: "global", severity: "info", message: "Déjà en collection (Mathieu & Ewan)" });
+  } else if (c.mathieu.owned) {
+    signals.push({ type: "collection_status", owner: "mathieu", severity: "info", message: "Déjà en collection Mathieu" });
+  } else if (c.ewan.owned) {
+    signals.push({ type: "collection_status", owner: "ewan", severity: "info", message: "Déjà en collection Ewan" });
+  } else {
+    signals.push({ type: "collection_status", owner: "global", severity: "info", message: "Absente des collections" });
   }
 
-  const totalStock = facts.stock.mathieu + facts.stock.ewan;
+  const stockM = facts.stock?.mathieu || 0;
+  const stockE = facts.stock?.ewan || 0;
+  const totalStock = stockM + stockE;
   if (totalStock > 0) {
     signals.push({
-      type: "already_in_stock",
+      type: "stock_status",
       owner: "global",
       severity: "info",
-      message: `Déjà en stock (M:${facts.stock.mathieu}, E:${facts.stock.ewan})`
+      message: `En stock (M:${stockM}, E:${stockE})`
     });
+  } else {
+    signals.push({ type: "stock_status", owner: "global", severity: "info", message: "Aucun stock" });
   }
 
-  if (facts.sales.already_sold) {
+  const investM = facts.invest?.mathieu || 0;
+  const investE = facts.invest?.ewan || 0;
+  const totalInvest = investM + investE;
+  if (totalInvest > 0) {
     signals.push({
-      type: "already_sold",
+      type: "invest_status",
       owner: "global",
       severity: "info",
-      message: "Déjà vendu historiquement"
+      message: `En invest (M:${investM}, E:${investE})`
     });
+  } else {
+    signals.push({ type: "invest_status", owner: "global", severity: "info", message: "Aucun stock invest" });
   }
 
   if (facts.cote.last_value) {
@@ -92,6 +99,7 @@ async function enrichBuySnapshotWithInternalData(snapshot, context) {
     const facts = {
       collection: enrichment.collection,
       stock: enrichment.stock,
+      invest: enrichment.invest,
       sales: enrichment.sales,
       cote: enrichment.cote
     };

@@ -53,13 +53,13 @@ const snapshot = {
     
     // 2. Simple Signals should contain collection message
     const sigL1 = getRes("L1").simple_signals;
-    assert.ok(sigL1.some(s => s.type === "collection_owned" && s.owner === "mathieu"), "Test 2 Failed");
+    assert.ok(sigL1.some(s => s.type === "collection_status" && s.owner === "mathieu"), "Test 2 Failed");
     
     // 3. Carte jamais possédée
     assert.strictEqual(getRes("L3").confidence, 0.1, "Test 3 Failed");
     assert.strictEqual(getRes("L3").facts.stock.mathieu, 0, "Test 3b Failed");
 
-    // 4. Carte déjà vendue plusieurs fois
+    // 4. Carte déjà vendue plusieurs fois (removed already_sold signal, so just skip or check facts)
     assert.strictEqual(getRes("L4").facts.sales.already_sold, true, "Test 4 Failed");
 
     // 5. Carte en stock élevé

@@ -83,6 +83,10 @@ function mergeData(sheetsData, supabaseData, cardKey, inputCondition) {
       mathieu: finalData.owners.mathieu.stock_quantity,
       ewan: finalData.owners.ewan.stock_quantity
     },
+    invest: {
+      mathieu: finalData.owners.mathieu.invest_quantity || 0,
+      ewan: finalData.owners.ewan.invest_quantity || 0
+    },
     sales: {
       already_sold: alreadySold
     },
