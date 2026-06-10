@@ -108,24 +108,36 @@ const { fetchPortalContextByCardId } = require('../../connectors/portal/supabase
 
 const internalCache = new Map();
 
-async function getInternalEnrichment(cardKey, inputCondition, context) {
-  let sheetsExport = context.sheets_export;
-  let supabasePortal = context.supabase_portal;
+async function getInternalEnrichment(cardKeysInput, condition, context = {}) {
+  // On gère un ou plusieurs keys
+  const cardKeys = Array.isArray(cardKeysInput) ? cardKeysInput : [cardKeysInput];
+  const primaryKey = cardKeys[0]; // Clé principale pour le retour
+
+  let sheetsExport = context.sheets_export || null;
+  let supabasePortal = context.supabase_portal || null;
+  
   let fetchWarning = null;
   let supabaseWarning = null;
-  
+
   // 1. Fetch Sheets API if requested
-  if (context.fetch_sheets_api && !sheetsExport) {
-    if (internalCache.has(cardKey)) {
-      const cached = internalCache.get(cardKey);
-      if (cached && cached.ok) {
-        sheetsExport = cached;
+  if (context.fetch_sheets_api) {
+    // Essayer de trouver en cache par une des clés
+    for (const k of cardKeys) {
+      if (internalCache.has(k)) {
+        const cached = internalCache.get(k);
+        if (cached && cached.ok) {
+          sheetsExport = cached;
+          break;
+        }
       }
     }
+
     if (!sheetsExport) {
-      const bundle = await fetchSheetsBundle("STOCK,PURCH_ITEMS,SALES_ITEMS,INVEST_ITEMS", cardKey);
+      // On fetch avec le primaryKey (TCGDex) pour Sheets en premier lieu, ou on pourrait passer la liste si l'API Sheets gérait.
+      // Par défaut on demande à Sheets la clé TCGDex (TWM-188-FR).
+      const bundle = await fetchSheetsBundle("STOCK,PURCH_ITEMS,SALES_ITEMS,INVEST_ITEMS", primaryKey);
       if (bundle && bundle.ok) {
-        internalCache.set(cardKey, bundle); // Only cache success
+        cardKeys.forEach(k => internalCache.set(k, bundle)); // Cache pour toutes les clés
         sheetsExport = bundle;
       } else {
         fetchWarning = `sheets_api_error: ${bundle?.error || 'Unknown error'}`;
@@ -134,18 +146,24 @@ async function getInternalEnrichment(cardKey, inputCondition, context) {
   }
 
   // 2. Fetch Supabase Portal API if requested
-  if (context.fetch_supabase_portal && !supabasePortal) {
-    const supaCacheKey = `supa_${cardKey}`;
-    if (internalCache.has(supaCacheKey)) {
-      supabasePortal = internalCache.get(supaCacheKey);
-      if (supabasePortal) {
-        const w = supabasePortal.cote_history?.warning || supabasePortal.collection?.warning;
-        if (w) supabaseWarning = w + " (cached)";
+  if (context.fetch_supabase_portal) {
+    const supaCacheKeys = cardKeys.map(k => `supa_${k}`);
+    for (const ck of supaCacheKeys) {
+      if (internalCache.has(ck)) {
+        const cached = internalCache.get(ck);
+        if (cached && !cached.error) {
+          supabasePortal = cached;
+          const w = supabasePortal.cote_history?.warning || supabasePortal.collection?.warning;
+          if (w) supabaseWarning = w + " (cached)";
+          break;
+        }
       }
-    } else {
-      const supaResult = await fetchPortalContextByCardId(cardKey);
+    }
+
+    if (!supabasePortal) {
+      const supaResult = await fetchPortalContextByCardId(cardKeys); // Passons l'array !
       if (supaResult && !supaResult.error) {
-        internalCache.set(supaCacheKey, supaResult);
+        supaCacheKeys.forEach(ck => internalCache.set(ck, supaResult));
       }
       supabasePortal = supaResult;
       if (supaResult) {
@@ -155,10 +173,11 @@ async function getInternalEnrichment(cardKey, inputCondition, context) {
     }
   }
 
-  const sheetsData = parseSheetsData(sheetsExport, cardKey);
-  const supabaseData = parseSupabaseData(supabasePortal, cardKey);
+  // TODO: parseSheetsData and parseSupabaseData currently expect a single cardKey
+  const sheetsData = parseSheetsData(sheetsExport, primaryKey);
+  const supabaseData = parseSupabaseData(supabasePortal, primaryKey);
   
-  const merged = mergeData(sheetsData, supabaseData, cardKey, inputCondition);
+  const merged = mergeData(sheetsData, supabaseData, primaryKey, condition);
   if (fetchWarning) {
     merged.warnings.push(fetchWarning);
   }

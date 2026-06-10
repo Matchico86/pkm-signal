@@ -92,11 +92,14 @@ async function fetchPortalCoteHistoryByCardId(cardId, options = {}) {
   let data = null;
   let error = null;
 
+  const keys = Array.isArray(cardId) ? cardId : [cardId];
+  const orCondition = keys.map(k => `card_id.ilike.${k}`).join(',');
+
   // Try ordering by date first
   const resultDate = await client
     .from(resolvedCoteTable)
     .select('*')
-    .ilike('card_id', cardId)
+    .or(orCondition)
     .order('date', { ascending: false, nullsFirst: false })
     .limit(100);
 
@@ -105,7 +108,7 @@ async function fetchPortalCoteHistoryByCardId(cardId, options = {}) {
     const resultCreatedAt = await client
       .from(resolvedCoteTable)
       .select('*')
-      .ilike('card_id', cardId)
+      .or(orCondition)
       .order('created_at', { ascending: false, nullsFirst: false })
       .limit(100);
     
@@ -163,10 +166,13 @@ async function fetchPortalCollectionByCardId(cardId, options = {}) {
     return { collection: baseResult };
   }
 
+  const keys = Array.isArray(cardId) ? cardId : [cardId];
+  const orCondition = keys.map(k => `card_id.ilike.${k}`).join(',');
+
   const { data, error } = await client
     .from(resolvedCollectionTable)
     .select('*')
-    .ilike('card_id', cardId);
+    .or(orCondition);
 
   if (error) {
     baseResult.warning = `portal_supabase_collection_error: ${error.message}`;
@@ -232,8 +238,9 @@ async function fetchPortalCollectionByCardId(cardId, options = {}) {
 const contextCache = new Map();
 
 async function fetchPortalContextByCardId(cardId, options = {}) {
-  if (contextCache.has(cardId)) {
-    return contextCache.get(cardId);
+  const cacheKey = Array.isArray(cardId) ? cardId.join('|') : String(cardId);
+  if (contextCache.has(cacheKey)) {
+    return contextCache.get(cacheKey);
   }
 
   const [cote_history, collectionData] = await Promise.all([
@@ -242,12 +249,12 @@ async function fetchPortalContextByCardId(cardId, options = {}) {
   ]);
 
   const result = {
-    card_id: cardId,
+    card_id: Array.isArray(cardId) ? cardId[0] : cardId,
     cote_history,
     collection: collectionData.collection
   };
 
-  contextCache.set(cardId, result);
+  contextCache.set(cacheKey, result);
   return result;
 }
 

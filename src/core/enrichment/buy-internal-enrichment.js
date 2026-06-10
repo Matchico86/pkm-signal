@@ -98,8 +98,11 @@ async function enrichBuySnapshotWithInternalData(snapshot, context) {
   let warningsCount = 0;
 
   for (const item of items) {
-    const cardKey = normalizeCardKey(item);
-    const enrichment = await getInternalEnrichment(cardKey, item.condition, context);
+    const primaryKey = normalizeCardKey(item);
+    const altKey = item.card_id ? item.card_id.toLowerCase() : null;
+    const cardKeys = [...new Set([primaryKey, altKey, item.card_id].filter(Boolean))];
+    
+    const enrichment = await getInternalEnrichment(cardKeys, item.condition, context);
     
     const facts = {
       collection: enrichment.collection,
