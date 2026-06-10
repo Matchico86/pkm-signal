@@ -37,7 +37,13 @@ function parseSheetsData(sheetsExport, cardKey, inputVariant = null) {
     };
   }
 
-  const parseNum = val => val ? Number(val) : 0;
+  const parseNum = (val) => {
+    if (!val) return 0;
+    if (typeof val === 'number') return isNaN(val) ? 0 : val;
+    const cleanStr = String(val).replace(/,/g, '.').replace(/\s/g, '');
+    const n = Number(cleanStr);
+    return isNaN(n) ? 0 : n;
+  };
   const isTrue = val => String(val).toUpperCase() === 'VRAI' || String(val).toUpperCase() === 'TRUE' || val === true || val === 1;
 
   // Si format "Bundle" (API Google Apps Script v1)

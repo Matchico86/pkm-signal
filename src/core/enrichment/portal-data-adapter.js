@@ -79,14 +79,14 @@ function mergeData(sheetsData, supabaseData, cardKey, inputCondition) {
 
     // Purchases (only Sheets)
     purchases[owner] = {
-      last_buy_price: sheetO.last_buy_price !== undefined ? sheetO.last_buy_price : null,
-      average_buy_price: sheetO.average_buy_price !== undefined ? sheetO.average_buy_price : null
+      last_buy_price: (sheetO.last_buy_price !== undefined && !isNaN(sheetO.last_buy_price)) ? sheetO.last_buy_price : null,
+      average_buy_price: (sheetO.average_buy_price !== undefined && !isNaN(sheetO.average_buy_price)) ? sheetO.average_buy_price : null
     };
 
     sales[owner] = {
       sold_quantity_12m: sheetO.sold_quantity_12m || 0,
-      last_sell_price: sheetO.last_sell_price !== undefined ? sheetO.last_sell_price : null,
-      average_sell_price: sheetO.average_sell_price !== undefined ? sheetO.average_sell_price : null
+      last_sell_price: (sheetO.last_sell_price !== undefined && !isNaN(sheetO.last_sell_price)) ? sheetO.last_sell_price : null,
+      average_sell_price: (sheetO.average_sell_price !== undefined && !isNaN(sheetO.average_sell_price)) ? sheetO.average_sell_price : null
     };
 
     totalSold += (sheetO.sold_quantity_12m || 0);

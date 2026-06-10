@@ -93,7 +93,7 @@ function generateSimpleSignals(facts, confidence, item = {}) {
   if (ownersWithPurchases.length > 0) {
     const details = ownersWithPurchases.map(o => {
       const avg = p[o].average_buy_price;
-      const val = avg !== null ? Math.round(avg) : '?';
+      const val = (avg !== null && !isNaN(avg)) ? Math.round(avg) : '-';
       return `${capitalize(o).substring(0,1)}:${val}€`;
     }).join(', ');
     signals.push({ type: "buy_status", owner: ownersWithPurchases.length === 1 ? ownersWithPurchases[0] : "global", severity: "info", message: `Achat moyen (${details})` });
