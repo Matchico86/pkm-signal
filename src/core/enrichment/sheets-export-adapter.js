@@ -66,11 +66,11 @@ function parseSheetsData(sheetsExport, cardKey, inputVariant = null) {
       return true;
     };
 
-    const cardPurchases = pItems.filter(r => (r.CARD_ID === cardKey || isTarget(r)) && filterByVariant(r, 'Variant'));
-    const cardSales = sItems.filter(r => (r.CARD_ID === cardKey || isTarget(r)) && filterByVariant(r, 'Variant'));
+    const cardPurchases = purchRows.filter(r => (r.CARD_ID === cardKey || isTarget(r)) && filterByVariant(r, 'Variant'));
+    const cardSales = salesRows.filter(r => (r.CARD_ID === cardKey || isTarget(r)) && filterByVariant(r, 'Variant'));
     
     // STOCK_LIVE n'a pas toujours Variant
-    const targetStockRows = stockItems.filter(r => r.CARD_ID === cardKey || isTarget(r));
+    const targetStockRows = stockRows.filter(r => r.CARD_ID === cardKey || isTarget(r));
     const cardStockFiltered = targetStockRows.filter(r => !r.Variant || filterByVariant(r, 'Variant'));
     const stockData = cardStockFiltered.length > 0 ? cardStockFiltered[0] : targetStockRows[0];
     
