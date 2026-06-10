@@ -1,4 +1,4 @@
-function parseSheetsData(sheetsExport, cardKey) {
+function parseSheetsData(sheetsExport, cardKey, inputVariant = null) {
   if (!sheetsExport) return null;
   
   // Si format legacy mock (objet indexé)
@@ -51,12 +51,33 @@ function parseSheetsData(sheetsExport, cardKey) {
     const normCardKey = cardKey.toUpperCase();
     const isTarget = r => r.CARD_ID && r.CARD_ID.toUpperCase() === normCardKey;
 
-    const stockData = stockRows.find(isTarget);
-    if (!stockData) return null;
+    const filterByVariant = (row, variantCol) => {
+      if (!inputVariant) return true;
+      const rowVar = row[variantCol] ? String(row[variantCol]).toUpperCase() : null;
+      const inVar = String(inputVariant).toUpperCase();
+      
+      if (inVar && rowVar) {
+        if (inVar !== rowVar && !(inVar === 'N' && rowVar === 'NORMAL') && !(rowVar === 'N' && inVar === 'NORMAL')) return false;
+      } else if (inVar && !rowVar) {
+        if (inVar !== 'N' && inVar !== 'NORMAL') return false;
+      } else if (!inVar && rowVar) {
+        if (rowVar !== 'N' && rowVar !== 'NORMAL') return false;
+      }
+      return true;
+    };
 
+    const cardPurchases = pItems.filter(r => (r.CARD_ID === cardKey || isTarget(r)) && filterByVariant(r, 'Variant'));
+    const cardSales = sItems.filter(r => (r.CARD_ID === cardKey || isTarget(r)) && filterByVariant(r, 'Variant'));
+    
+    // STOCK_LIVE n'a pas toujours Variant
+    const targetStockRows = stockItems.filter(r => r.CARD_ID === cardKey || isTarget(r));
+    const cardStockFiltered = targetStockRows.filter(r => !r.Variant || filterByVariant(r, 'Variant'));
+    const stockData = cardStockFiltered.length > 0 ? cardStockFiltered[0] : targetStockRows[0];
+    
+    // INVEST_ITEMS is already extracted as investRows at the top
     const investData = investRows.find(isTarget);
-    const cardPurchases = purchRows.filter(isTarget);
-    const cardSales = salesRows.filter(isTarget);
+
+    if (!stockData) return null;
 
     const warnings = [];
     const ownersData = {};

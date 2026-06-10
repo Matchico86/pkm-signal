@@ -108,7 +108,7 @@ const { fetchPortalContextByCardId } = require('../../connectors/portal/supabase
 
 const internalCache = new Map();
 
-async function getInternalEnrichment(cardKeysInput, condition, context = {}) {
+async function getInternalEnrichment(cardKeysInput, condition, inputVariant, context = {}) {
   // On gère un ou plusieurs keys
   const cardKeys = Array.isArray(cardKeysInput) ? cardKeysInput : [cardKeysInput];
   const primaryKey = cardKeys[0]; // Clé principale pour le retour
@@ -174,8 +174,8 @@ async function getInternalEnrichment(cardKeysInput, condition, context = {}) {
   }
 
   // TODO: parseSheetsData and parseSupabaseData currently expect a single cardKey
-  const sheetsData = parseSheetsData(sheetsExport, primaryKey);
-  const supabaseData = parseSupabaseData(supabasePortal, primaryKey);
+  const sheetsData = parseSheetsData(sheetsExport, primaryKey, inputVariant);
+  const supabaseData = parseSupabaseData(supabasePortal, primaryKey, inputVariant);
   
   const merged = mergeData(sheetsData, supabaseData, primaryKey, condition);
   if (fetchWarning) {
@@ -187,4 +187,4 @@ async function getInternalEnrichment(cardKeysInput, condition, context = {}) {
   return merged;
 }
 
-module.exports = { getInternalEnrichment };
+module.exports = { getInternalEnrichment, isBetterCondition };

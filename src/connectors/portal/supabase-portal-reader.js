@@ -197,7 +197,22 @@ async function fetchPortalCollectionByCardId(cardId, options = {}) {
 
   const initOwner = () => ({ owned: false, quantity: 0, best_condition: null, versions: [] });
 
+  const inputVariant = options.variant ? String(options.variant).toUpperCase() : null;
+
   data.forEach(row => {
+    const rowVariant = row.variant ? String(row.variant).toUpperCase() : null;
+    
+    // Si la variante ne correspond pas, on l'ignore. On tolère que 'N' ou vide s'équivalent.
+    if (inputVariant && rowVariant) {
+      if (inputVariant !== rowVariant && !(inputVariant === 'N' && rowVariant === 'NORMAL') && !(rowVariant === 'N' && inputVariant === 'NORMAL')) {
+        return; 
+      }
+    } else if (inputVariant && !rowVariant) {
+      if (inputVariant !== 'N' && inputVariant !== 'NORMAL') return;
+    } else if (!inputVariant && rowVariant) {
+      if (rowVariant !== 'N' && rowVariant !== 'NORMAL') return;
+    }
+
     // Si la table contient des colonnes mathieu_owned, ewan_owned
     if (row.mathieu_owned !== undefined || row.ewan_owned !== undefined) {
       if (row.mathieu_owned) {

@@ -1,4 +1,4 @@
-const { getInternalEnrichment } = require('./portal-data-adapter');
+const { getInternalEnrichment, isBetterCondition } = require('./portal-data-adapter');
 
 function normalizeCardKey(item) {
   // Priorité au format TCGDex (ex: TWM-188-FR) car c'est ce que Sheets et Supabase attendent
@@ -17,7 +17,7 @@ function normalizeCardKey(item) {
   return `${name}_${set}_${num}`.toUpperCase().replace(/[^A-Z0-9-]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '');
 }
 
-function generateSimpleSignals(facts, confidence) {
+function generateSimpleSignals(facts, confidence, item = {}) {
   const signals = [];
 
   if (confidence < 0.5) {
@@ -36,8 +36,21 @@ function generateSimpleSignals(facts, confidence) {
   const ownersWithCollection = Object.keys(c).filter(o => c[o].owned);
   
   if (ownersWithCollection.length > 0) {
-    const names = ownersWithCollection.map(capitalize).join(' & ');
-    signals.push({ type: "collection_status", owner: ownersWithCollection.length === 1 ? ownersWithCollection[0] : "global", severity: "info", message: `Déjà en collection (${names})` });
+    const upgradeOwners = ownersWithCollection.filter(o => {
+      const existingCond = c[o].best_condition;
+      // On vérifie si la condition de la carte entrante est STRICTEMENT meilleure
+      // On s'assure aussi que l'utilisateur a vraiment fourni une condition entrante
+      return item.condition && existingCond && isBetterCondition(existingCond, item.condition) && existingCond.toUpperCase() !== item.condition.toUpperCase();
+    });
+
+    if (upgradeOwners.length > 0) {
+      const names = upgradeOwners.map(capitalize).join(' & ');
+      const existingConds = upgradeOwners.map(o => c[o].best_condition).join(', ');
+      signals.push({ type: "collection_status", owner: upgradeOwners.length === 1 ? upgradeOwners[0] : "global", severity: "info", message: `Opportunité d'upgrade (${names} a ${existingConds} -> ${item.condition})` });
+    } else {
+      const names = ownersWithCollection.map(capitalize).join(' & ');
+      signals.push({ type: "collection_status", owner: ownersWithCollection.length === 1 ? ownersWithCollection[0] : "global", severity: "info", message: `Déjà en collection (${names})` });
+    }
   } else {
     signals.push({ type: "collection_status", owner: "global", severity: "info", message: "Absente des collections" });
   }
@@ -102,7 +115,7 @@ async function enrichBuySnapshotWithInternalData(snapshot, context) {
     const altKey = item.card_id ? item.card_id.toLowerCase() : null;
     const cardKeys = [...new Set([primaryKey, altKey, item.card_id].filter(Boolean))];
     
-    const enrichment = await getInternalEnrichment(cardKeys, item.condition, context);
+    const enrichment = await getInternalEnrichment(cardKeys, item.condition, item.variant, context);
     
     const facts = {
       collection: enrichment.collection,
@@ -118,7 +131,7 @@ async function enrichBuySnapshotWithInternalData(snapshot, context) {
     }
 
     const confidence = enrichment.internal_confidence;
-    const signals = generateSimpleSignals(facts, confidence);
+    const signals = generateSimpleSignals(facts, confidence, item);
 
     const enrichedItem = {
       line_id: item.line_id || "unknown",
