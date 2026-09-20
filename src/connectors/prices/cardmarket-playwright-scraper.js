@@ -378,6 +378,38 @@ async function scrapeCardmarketFrNm(cardmarketId, options = {}) {
 
     // Extraction des offres depuis le DOM
     const rawOffers = await page.evaluate(() => {
+      function parseCardmarketPrice(text) {
+        if (!text) return NaN;
+        let cleaned = String(text).replace(/[€\s\u00a0\u202f]/g, '').trim();
+        if (!cleaned) return NaN;
+
+        // Format européen standard: point = séparateur de milliers, virgule = décimale
+        // Ex: "1.200,50" -> "1200.50", "1.200,00" -> "1200.00"
+        if (cleaned.includes('.') && cleaned.includes(',')) {
+          if (cleaned.lastIndexOf(',') > cleaned.lastIndexOf('.')) {
+            // Point avant virgule → point = milliers, virgule = décimale
+            cleaned = cleaned.replace(/\./g, '').replace(',', '.');
+          } else {
+            // Virgule avant point → virgule = milliers, point = décimale (format UK)
+            cleaned = cleaned.replace(/,/g, '');
+          }
+        } else if (cleaned.includes(',')) {
+          // Seulement virgule → décimale (ex: "12,50")
+          cleaned = cleaned.replace(',', '.');
+        } else if (cleaned.includes('.')) {
+          // Seulement point : distinguer milliers (1.200) de décimale (12.50)
+          // Un point de milliers a exactement 3 chiffres après le point et pas de décimale
+          // On considère toute séquence de \d+.\d{3} sans autre décimale comme milliers
+          const parts = cleaned.split('.');
+          if (parts.length === 2 && parts[1].length === 3 && /^\d+$/.test(parts[0]) && /^\d{3}$/.test(parts[1])) {
+            // Ex: "1.200", "10.000" → supprimer le point
+            cleaned = parts[0] + parts[1];
+          }
+          // Sinon garder tel quel pour parseFloat (ex: "12.50" reste "12.50")
+        }
+        return parseFloat(cleaned);
+      }
+
       const rows = Array.from(document.querySelectorAll('.article-row'));
       const list = [];
 
@@ -393,11 +425,7 @@ async function scrapeCardmarketFrNm(cardmarketId, options = {}) {
           r.querySelector('.color-primary');
         if (!priceElem) continue;
 
-        const rawPrice = priceElem.innerText
-          .replace('€', '')
-          .replace(/\s/g, '')
-          .replace(',', '.');
-        const price = parseFloat(rawPrice);
+        const price = parseCardmarketPrice(priceElem.innerText);
         if (isNaN(price) || price <= 0) continue;
 
         // 3. Quantité
@@ -450,13 +478,33 @@ async function scrapeCardmarketFrNm(cardmarketId, options = {}) {
       return list;
     });
 
+    // Extraction de l'idProduct officiel depuis le DOM de la page
+    const extractedProductId = await page.evaluate(() => {
+      const inp = document.querySelector('input[name="idProduct"], input[name="productId"], [data-product-id], [data-id-product]');
+      if (inp) {
+        const v = inp.value || inp.getAttribute('data-product-id') || inp.getAttribute('data-id-product');
+        if (v && /^\d+$/.test(v.trim())) return parseInt(v.trim(), 10);
+      }
+      const links = Array.from(document.querySelectorAll('form[action*="idProduct="], a[href*="idProduct="]'));
+      for (const el of links) {
+        const str = el.action || el.href || '';
+        const m = str.match(/idProduct=(\d+)/i);
+        if (m) return parseInt(m[1], 10);
+      }
+      const urlM = (window.location.href + ' ' + (document.querySelector('link[rel="canonical"]')?.href || '')).match(/idProduct=(\d+)/i);
+      if (urlM) return parseInt(urlM[1], 10);
+      return null;
+    }).catch(() => null);
+
+    const detectedIdNum = extractedProductId || (Number(cardmarketId) > 0 ? Number(cardmarketId) : null);
     const durationMs = Date.now() - startTime;
 
     if (!rawOffers || rawOffers.length === 0) {
       return {
         success: false,
         reason: 'no_offers_found',
-        cardmarket_id: cardmarketId,
+        cardmarket_id: detectedIdNum || cardmarketId,
+        product_id: detectedIdNum,
         url: page.url(),
         duration_ms: durationMs
       };
@@ -494,7 +542,8 @@ async function scrapeCardmarketFrNm(cardmarketId, options = {}) {
 
     return {
       success: true,
-      cardmarket_id: cardmarketId,
+      cardmarket_id: detectedIdNum || cardmarketId,
+      product_id: detectedIdNum,
       floor,
       avg3,
       avg5,
