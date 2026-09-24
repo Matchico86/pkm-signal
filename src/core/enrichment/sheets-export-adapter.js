@@ -1,3 +1,8 @@
+/**
+ * @deprecated Google Sheets data adapter is deprecated.
+ * Portal now hosts all inventory, transactions, and cote history directly in Supabase.
+ * Kept strictly for backward compatibility with unit test mocks and legacy fixtures.
+ */
 function parseSheetsData(sheetsExport, cardKey, inputVariant = null) {
   if (!sheetsExport) return null;
   

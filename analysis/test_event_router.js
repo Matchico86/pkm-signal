@@ -2,7 +2,7 @@ require('dotenv').config();
 const { processBuyEvent } = require('../src/jobs/process-buy-event');
 const { processBuySnapshot } = require('../src/jobs/process-buy-snapshot');
 
-const sessionId = "mock-session-event-router";
+const sessionId = null;
 
 // Mock des anciens événements (fallback)
 const mockFullSnapshot = require('../src/core/contracts/buy.order.mock.json');

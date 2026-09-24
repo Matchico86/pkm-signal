@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
+    "test": "node --test tests/*.test.js",
+    "server:cote": "node src/server.js",
+    "cf:solve": "node src/tools/solve-cf.js",
     "start:worker": "npx @dotenvx/dotenvx run -- node src/worker.js",
     "db:migrate": "node src/db/migrate.js",
     "db:migrate:status": "node src/db/migrate.js --status",
@@ -21,5 +24,8 @@
     "@supabase/supabase-js": "^2.107.0",
     "dotenv": "^17.4.2",
     "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "playwright": "^1.63.0"
   }
 }

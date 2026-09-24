@@ -1,15 +1,19 @@
 require('dotenv').config();
 const { createClient } = require('@supabase/supabase-js');
 
-// On initialise le client seulement si les credentials sont présents (sinon on peut mocker en local)
-const supabaseUrl = process.env.SUPABASE_URL || '';
+const isHttpUrl = (url) => typeof url === 'string' && /^https?:\/\//i.test(url);
+const supabaseUrl = (isHttpUrl(process.env.SUPABASE_URL) ? process.env.SUPABASE_URL : process.env.PKM_PORTAL_SUPABASE_URL) || '';
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || '';
 
 let supabase = null;
-if (supabaseUrl && supabaseKey) {
-  supabase = createClient(supabaseUrl, supabaseKey);
+if (isHttpUrl(supabaseUrl) && supabaseKey) {
+  try {
+    supabase = createClient(supabaseUrl, supabaseKey);
+  } catch (e) {
+    console.warn('[Supabase] Erreur initialisation client Supabase:', e.message);
+  }
 } else {
-  console.warn('[Supabase] Credentials manquants. Mode Mock activé (aucune écriture en base).');
+  console.warn('[Supabase] Credentials manquants ou URL invalide. Mode Mock activé (aucune écriture en base).');
 }
 
 /**
@@ -19,21 +23,19 @@ if (supabaseUrl && supabaseKey) {
 async function upsertSession(domain, slot, externalRef, snapshot) {
   if (!supabase) return { session_id: 'mock-session-id' };
 
-  // On cherche une session existante active
+  // On cherche une session existante active (contrainte unique sur domain + external_ref)
   const { data: existing, error: searchError } = await supabase
     .from('assist_sessions')
     .select('session_id')
     .eq('domain', domain)
-    .eq('slot', slot)
     .eq('external_ref', externalRef)
-    .eq('status', 'active')
-    .single();
+    .maybeSingle();
 
   if (existing) {
-    // Mettre à jour le snapshot
+    // Mettre à jour le snapshot et le slot
     await supabase
       .from('assist_sessions')
-      .update({ latest_snapshot: snapshot, updated_at: new Date().toISOString() })
+      .update({ slot, latest_snapshot: snapshot, updated_at: new Date().toISOString() })
       .eq('session_id', existing.session_id);
     return existing;
   }
@@ -102,7 +104,7 @@ async function updateRunStatus(runId, status, durationMs = null, errorMessage = 
 }
 
 /**
- * Insère une liste de signaux générés par les patterns.
+ * Insère une liste de signaux générés par les patterns ou les jobs.
  */
 async function insertSignals(sessionId, runId, domain, slot, signalsArray) {
   if (!supabase || signalsArray.length === 0) return;
@@ -110,14 +112,14 @@ async function insertSignals(sessionId, runId, domain, slot, signalsArray) {
   const rows = signalsArray.map(sig => ({
     session_id: sessionId,
     run_id: runId,
-    scope: sig.context && sig.context.draft_item_id ? 'item' : 'order',
-    entity_ref: (sig.context && sig.context.draft_item_id) || (sig.context && sig.context.draft_order_id) || null,
-    card_id: (sig.context && sig.context.card_id) || null,
-    severity: sig.level === 'warning' ? 'warning' : 'info',
-    title: sig.type,
+    scope: sig.scope || (sig.entity_type === 'line' || sig.entity_ref || (sig.context && sig.context.draft_item_id) ? 'item' : 'order'),
+    entity_ref: sig.entity_ref || (sig.context && sig.context.draft_item_id) || (sig.context && sig.context.draft_order_id) || null,
+    card_id: sig.card_id || (sig.context && sig.context.card_id) || (sig.payload && sig.payload.card_id) || null,
+    severity: sig.severity || (sig.level === 'warning' ? 'warning' : 'info'),
+    title: sig.title || sig.signal_type || sig.type,
     message: sig.message,
-    payload: (sig.context && sig.context.payload) || null,
-    status: 'active'
+    payload: sig.payload || (sig.context && sig.context.payload) || null,
+    status: sig.status || 'active'
   }));
 
   const { error } = await supabase

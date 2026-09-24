@@ -55,6 +55,13 @@ const snapshot = {
     // 2. Simple Signals should contain collection message
     const sigL1 = getRes("L1").simple_signals;
     assert.ok(sigL1.some(s => s.type === "collection_status" && s.owner === "mathieu"), "Test 2 Failed");
+    const upgradeMsg = sigL1.find(s => s.type === "collection_status")?.message;
+    assert.ok(upgradeMsg && upgradeMsg.includes("Opportunité d'upgrade"), "Test 2b Upgrade should be detected (EX -> NM)");
+
+    // 2c. Non-upgrade si condition entrante inférieure (PL vs EX existant)
+    const sigL2 = getRes("L2").simple_signals;
+    const noUpgradeMsg = sigL2.find(s => s.type === "collection_status")?.message;
+    assert.ok(noUpgradeMsg && noUpgradeMsg.includes("Déjà en collection"), "Test 2c PL vs EX should not be upgrade");
     
     // 3. Carte jamais possédée
     assert.strictEqual(getRes("L3").confidence, 0.1, "Test 3 Failed");

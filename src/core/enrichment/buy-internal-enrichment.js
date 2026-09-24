@@ -35,23 +35,26 @@ function generateSimpleSignals(facts, confidence, item = {}) {
   const c = facts.collection || {};
   const ownersWithCollection = Object.keys(c).filter(o => c[o].owned);
   
-  if (ownersWithCollection.length > 0) {
+  const targetList = String(item.target_list || item.list_id || '').toLowerCase().trim();
+  const isDestinationCollection = !targetList || targetList === 'collection' || targetList === 'collec';
+
+  if (isDestinationCollection && ownersWithCollection.length > 0) {
     const upgradeOwners = ownersWithCollection.filter(o => {
       const existingCond = c[o].best_condition;
       // On vérifie si la condition de la carte entrante est STRICTEMENT meilleure
-      // On s'assure aussi que l'utilisateur a vraiment fourni une condition entrante
-      return item.condition && existingCond && isBetterCondition(existingCond, item.condition) && existingCond.toUpperCase() !== item.condition.toUpperCase();
+      return item.condition && existingCond && isBetterCondition(item.condition, existingCond) && existingCond.toUpperCase() !== item.condition.toUpperCase();
     });
 
     if (upgradeOwners.length > 0) {
-      const names = upgradeOwners.map(capitalize).join(' & ');
       const existingConds = upgradeOwners.map(o => c[o].best_condition).join(', ');
-      signals.push({ type: "collection_status", owner: upgradeOwners.length === 1 ? upgradeOwners[0] : "global", severity: "info", message: `Opportunité d'upgrade (${names} a ${existingConds} -> ${item.condition})` });
+      signals.push({ type: "collection_status", owner: upgradeOwners.length === 1 ? upgradeOwners[0] : "global", severity: "info", message: `Opportunité d'upgrade (${existingConds} -> ${item.condition})` });
     } else {
-      const names = ownersWithCollection.map(capitalize).join(' & ');
-      signals.push({ type: "collection_status", owner: ownersWithCollection.length === 1 ? ownersWithCollection[0] : "global", severity: "info", message: `Déjà en collection (${names})` });
+      signals.push({ type: "collection_status", owner: ownersWithCollection.length === 1 ? ownersWithCollection[0] : "global", severity: "info", message: `Déjà en collection` });
     }
-  } else {
+  } else if (ownersWithCollection.length > 0) {
+    signals.push({ type: "collection_status", owner: ownersWithCollection.length === 1 ? ownersWithCollection[0] : "global", severity: "info", message: `Déjà en collection` });
+  }
+ else {
     // Determine set progress if available
     let progressStr = "";
     // We check if the global owner or mathieu has set_progress.
@@ -127,23 +130,39 @@ async function enrichBuySnapshotWithInternalData(snapshot, context) {
 
   for (const item of items) {
     const primaryKey = normalizeCardKey(item);
+    const setNumKey = (item.set_id && item.number) ? `${String(item.set_id).trim()}-${String(item.number).trim()}`.toUpperCase() : null;
     const altKey = item.card_id ? item.card_id.toLowerCase() : null;
-    const cardKeys = [...new Set([primaryKey, altKey, item.card_id].filter(Boolean))];
+    const cardKeys = [...new Set([
+      primaryKey,
+      setNumKey,
+      item.card_ref?.toUpperCase(),
+      item.card_id?.toUpperCase(),
+      item.tcgdex_id?.toLowerCase(),
+      altKey,
+      item.card_id
+    ].filter(Boolean))];
     
     const enrichment = await getInternalEnrichment(cardKeys, item.condition, item.variant, item.set_id, context);
     
     const facts = {
+      card_id: item.card_id,
       collection: enrichment.collection,
       stock: enrichment.stock,
+      total_stock: enrichment.total_stock,
+      oldest_stock_date: enrichment.oldest_stock_date,
+      days_in_stock: enrichment.days_in_stock,
       invest: enrichment.invest,
       purchases: enrichment.purchases,
       sales: enrichment.sales,
-      cote: enrichment.cote
+      cote: enrichment.cote,
+      favorites: enrichment.favorites,
+      favorite_owners: enrichment.favorite_owners,
+      set_progress: enrichment.set_progress,
+      card_info: enrichment.card_info,
+      rarity: enrichment.rarity,
+      active_owners: enrichment.active_owners,
+      entered_cote: Number(item.internal_market_price_unit) > 0 ? Number(item.internal_market_price_unit) : null
     };
-
-    if (item.internal_market_price_unit !== undefined && item.internal_market_price_unit !== null) {
-      facts.cote.last_value = item.internal_market_price_unit;
-    }
 
     const confidence = enrichment.internal_confidence;
     const signals = generateSimpleSignals(facts, confidence, item);

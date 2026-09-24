@@ -46,3 +46,15 @@ __pycache__/
 data/cache/
 outputs/
 *.pyc
+
+# Sessions navigateur & profils temporaires scraper
+data/browser_session*/
+data/chrome_cdp/
+data/test_chrome_native/
+scratch/
+scratch_*/
+
+# Sauvegardes & archives
+*.zip
+*.tar.gz
+

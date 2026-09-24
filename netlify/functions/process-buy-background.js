@@ -6,7 +6,7 @@ const { checkStock } = require('../../src/core/patterns/buy/stock-check');
 const { checkLiquidity } = require('../../src/core/patterns/buy/liquidity-check');
 const supabaseConnector = require('../../src/connectors/supabase');
 
-const API_KEY = process.env.SIGNAL_API_KEY || 'dev-key-123';
+const API_KEY = process.env.SIGNAL_API_KEY;
 
 /**
  * Netlify Background Function
@@ -20,10 +20,15 @@ exports.handler = async function (event, context) {
     return; // Dans une Background Function, le return ne fait que terminer l'exécution silencieusement.
   }
 
-  // 2. Vérification de l'API Key
+  // 2. Vérification de sécurité (Fail-closed : aucune clé par défaut permise)
+  if (!API_KEY) {
+    console.error('[Erreur Critique] SIGNAL_API_KEY non configurée dans l\'environnement. Exécution refusée (fail-closed).');
+    return;
+  }
+
   const reqKey = event.headers['x-api-key'] || event.headers['X-Api-Key'];
-  if (reqKey !== API_KEY) {
-    console.error('[Erreur] Unauthorized. Invalid x-api-key.');
+  if (!reqKey || reqKey !== API_KEY) {
+    console.error('[Erreur] Unauthorized. Invalid or missing x-api-key.');
     return;
   }
 

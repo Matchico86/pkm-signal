@@ -74,7 +74,7 @@ async function processBuySnapshot(input, existingSessionId = null) {
     session_id: existingSessionId,
     domain: 'buy',
     slot: 'buy.order',
-    external_ref: validatedSnapshot.draft_order_id,
+    external_ref: validatedSnapshot.draft_order_id || 'mock_draft_order',
     snapshot: validatedSnapshot
   };
   
